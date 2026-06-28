@@ -1,0 +1,45 @@
+{
+  "$comment": "Claude Code settings — managed by chezmoi (ADR-0004). Permission match order: deny > ask > allow. Hooks run FIXED local commands only, never model-derived content.",
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)",
+      "Read(~/.aws/credentials)",
+      "Bash(rm -rf *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(terraform destroy*)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(terraform apply*)",
+      "Bash(aws *)"
+    ],
+    "allow": [
+      "Read(**)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(ls *)",
+      "Bash(rg *)",
+      "Bash(mise *)"
+    ]
+  },
+  "enableAllProjectMcpServers": false,
+  "$comment_mcp": "MCP servers are allowlisted + pinned and reviewed as dependencies (ADR-0004 §3 / ADR-0003). Add servers explicitly to enabledMcpjsonServers; never enable all.",
+  "enabledMcpjsonServers": [],
+  "hooks": {
+    "Notification": [
+      { "hooks": [ { "type": "command", "command": "zellij action rename-tab 'ATTEND' 2>/dev/null || true" } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "zellij action rename-tab 'FINI' 2>/dev/null || true" } ] }
+    ]
+  }
+}
