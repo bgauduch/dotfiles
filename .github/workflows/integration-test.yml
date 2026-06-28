@@ -42,3 +42,5 @@ jobs:
           # Advisory: report style/info findings but never fail the run.
           find . -path ./.git -prune -o -name '*.sh' -print \
             | xargs -r shellcheck -s bash -S error -e SC1091 || true
+      - name: actionlint (workflow files)
+        run: docker run --rm -v "$PWD:/repo" --workdir /repo rhysd/actionlint:latest -color || true
