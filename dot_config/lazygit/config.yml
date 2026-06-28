@@ -1,0 +1,16 @@
+# Lazygit — visual git diff/commit TUI (ADR-0008 / PLAN Phase 5).
+# delta integration for rich diffs (delta installed via brew/apt — see Step 3).
+gui:
+  nerdFontsVersion: "3"
+  theme:
+    activeBorderColor:
+      - "#cba6f7" # Catppuccin Mocha mauve
+      - bold
+    inactiveBorderColor:
+      - "#6c7086"
+    selectedLineBgColor:
+      - "#313244"
+git:
+  paging:
+    colorArg: always
+    pager: delta --dark --paging=never

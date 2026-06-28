@@ -1,0 +1,38 @@
+# Starship prompt (PLAN Phase 5bis) — single file, no OS variation.
+# Sensible default; replace with the user's migrated Starship config when porting.
+add_newline = true
+
+format = """
+$directory\
+$git_branch\
+$git_status\
+$python\
+$golang\
+$nodejs\
+$terraform\
+$aws\
+$cmd_duration\
+$line_break\
+$character"""
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[directory]
+truncation_length = 4
+truncate_to_repo = true
+
+[git_branch]
+symbol = " "
+
+[aws]
+symbol = "  "
+format = '[$symbol($profile )(\($region\) )]($style)'
+
+[terraform]
+format = '[ $version$workspace]($style) '
+
+[cmd_duration]
+min_time = 2000
+format = "[ $duration]($style) "

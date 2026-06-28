@@ -1,0 +1,53 @@
+# Helix LSP wiring (PLAN Phase 5) for the user's IaC/dev stack.
+# The LSP binaries are installed as mise tools (ADR-0002); exact mise registry
+# names are confirmed on first real install (see dot_config/mise/config.toml.tmpl).
+# Helix simply skips a server that isn't on PATH, so this is safe to ship early.
+
+[language-server.terraform-ls]
+command = "terraform-ls"
+args = ["serve"]
+
+[language-server.gopls]
+command = "gopls"
+
+[language-server.bash-language-server]
+command = "bash-language-server"
+args = ["start"]
+
+[language-server.yaml-language-server]
+command = "yaml-language-server"
+args = ["--stdio"]
+
+[language-server.marksman]
+command = "marksman"
+args = ["server"]
+
+[[language]]
+name = "hcl"
+language-servers = ["terraform-ls"]
+auto-format = true
+
+[[language]]
+name = "tfvars"
+language-servers = ["terraform-ls"]
+
+[[language]]
+name = "go"
+language-servers = ["gopls"]
+auto-format = true
+
+[[language]]
+name = "python"
+# pylsp/ruff added once chosen; left to Helix defaults for now.
+
+[[language]]
+name = "bash"
+language-servers = ["bash-language-server"]
+
+[[language]]
+name = "yaml"
+language-servers = ["yaml-language-server"]
+
+[[language]]
+name = "markdown"
+language-servers = ["marksman"]
