@@ -1,0 +1,43 @@
+name: integration-test
+
+# Repo strategy (ADR-0009): run the FULL isolated installation on every branch
+# push and on PRs, so each commit is integration-tested and the PR is validated
+# by a clean end-to-end install before merge.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  isolated-install:
+    name: Full isolated install (chezmoi init --apply + doctor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated install image (this IS the test)
+        run: docker build -t dotfiles-it -f Dockerfile .
+
+  secrets:
+    name: gitleaks (ADR-0007 level 1)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks detect
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest \
+            detect --source=/repo --redact --no-banner
+
+  lint:
+    name: shellcheck (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck shell scripts
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          # Only real .sh scripts; .tmpl files contain chezmoi template syntax.
+          find . -path ./.git -prune -o -name '*.sh' -print \
+            | xargs -r shellcheck -s bash -e SC1091

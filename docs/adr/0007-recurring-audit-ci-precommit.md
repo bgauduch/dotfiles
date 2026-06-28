@@ -39,6 +39,9 @@ clair, deny manquant). Choix exprimé : CI bloquant + pre-commit avertissement.
   avec un gate rouge.
 
 ### Forge & modèle de branches
+> **Amendé par [ADR-0009](0009-ci-integration-test.md)** : le dépôt vit sur **GitHub**, la CI est
+> donc réalisée en **GitHub Actions** (pas GitLab CI), avec un test d'intégration "install isolée"
+> à chaque commit. Le modèle de branches ci-dessous reste valable (PR + CI bloquante sur `main`).
 - **Forge** : GitLab (aligne l'écosystème existant). Le CLI de revue PR/run est `glab`, pas `gh`
   (aligné sur ADR-0008).
 - **Modèle** : MR obligatoire + CI bloquante sur `main` (pas de push direct).

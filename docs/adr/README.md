@@ -21,6 +21,7 @@ commandes, étapes) vit dans [`RUNBOOK.md`](../RUNBOOK.md), pas dans les ADR.
 | [0006](0006-immutability-level-pragmatic.md) | Niveau d'immutabilité pragmatique évolutif | granulaire | **oui** | accepted |
 | [0007](0007-recurring-audit-ci-precommit.md) | Audit récurrent CI + pre-commit | granulaire | **oui** | **proposed** (niveau 2 différé) |
 | [0008](0008-tui-stack.md) | Stack TUI (WezTerm/Zellij/Helix/Yazi/Lazygit) | **groupé** | non | accepted (Helix sous validation) |
+| [0009](0009-ci-integration-test.md) | Test d'intégration CI (install isolée, GitHub Actions) | granulaire | **oui** | accepted (amende ADR-0007 forge) |
 
 ## Conventions rapides
 - Numérotation incrémentale, jamais réutilisée. Un ADR déprécié reste (superseding, pas suppression).

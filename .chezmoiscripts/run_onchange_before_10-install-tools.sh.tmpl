@@ -24,7 +24,11 @@ case "${osid}" in
     # 1) System bricks via apt — native Debian trust model (ADR-0002).
     if have apt-get; then
       ${SUDO} apt-get update -y
-      ${SUDO} apt-get install -y zsh git curl unzip build-essential ripgrep fd-find git-delta
+      # Required system bricks (must succeed).
+      ${SUDO} apt-get install -y zsh git curl unzip build-essential
+      # Nice-to-haves (best-effort; names/availability vary by release).
+      ${SUDO} apt-get install -y ripgrep fd-find git-delta || \
+        echo "warn: some optional apt packages unavailable on this release"
       # Third-party apt repos (if ever needed) MUST use an individual keyring under
       # /etc/apt/keyrings + Signed-By:, never the global keyring (ADR-0002 garde-fou).
       ${SUDO} install -d -m 0755 /etc/apt/keyrings
