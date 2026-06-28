@@ -5,8 +5,8 @@ agents IA). Format : **MADR étendu** (4 champs sécu custom), défini dans
 [ADR-0000](0000-adr-process-and-repo-conventions.md). Gabarit : [`_template.md`](_template.md).
 
 Toute décision technique nouvelle ou modifiée ⇒ un ADR (ou un superseding). Les ADR
-`security-relevant` référencent [`THREAT-MODEL.md`](THREAT-MODEL.md). Le **comment** (procédures,
-commandes, étapes) vit dans [`RUNBOOK.md`](RUNBOOK.md), pas dans les ADR.
+`security-relevant` référencent [`THREAT-MODEL.md`](../THREAT-MODEL.md). Le **comment** (procédures,
+commandes, étapes) vit dans [`RUNBOOK.md`](../RUNBOOK.md), pas dans les ADR.
 
 ## Index
 
