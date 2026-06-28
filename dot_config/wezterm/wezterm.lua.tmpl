@@ -1,0 +1,32 @@
+-- WezTerm — GPU terminal emulator (ADR-0008 / PLAN Phase 3).
+-- One templated config; OS differences via chezmoi ({{ .osid }}) and, where useful,
+-- wezterm.target_triple at runtime. On WSL2 this file is NOT deployed into the Linux
+-- $HOME (.chezmoiignore) — WezTerm runs on the Windows side there.
+local wezterm = require("wezterm")
+local config = wezterm.config_builder()
+
+-- Theme: Catppuccin {{ .theme.flavor }}, kept consistent across the whole stack.
+config.color_scheme = "Catppuccin Mocha"
+
+-- Font: a Nerd Font so Helix/Yazi/Lazygit/Starship icons render.
+config.font = wezterm.font("{{ .font.family }}")
+{{ if eq .chezmoi.os "darwin" -}}
+config.font_size = {{ .font.size_darwin }}.0
+{{- else -}}
+config.font_size = {{ .font.size_linux }}.0
+{{- end }}
+
+-- Clipboard: WezTerm handles OSC52 natively (copy works over SSH/multiplexer) —
+-- no pbcopy / clip.exe shim required (PLAN Phase 3).
+
+-- Auto-launch Zellij as the multiplexer, attaching to a persistent "main" session.
+config.default_prog = { "{{ if eq .chezmoi.os "darwin" }}/bin/zsh{{ else }}zsh{{ end }}", "-l", "-c", "zellij attach -c main" }
+
+-- UX
+config.window_close_confirmation = "NeverPrompt"
+config.hide_tab_bar_if_only_one_tab = true
+config.window_decorations = "RESIZE"
+config.scrollback_lines = 10000
+config.adjust_window_size_when_changing_font_size = false
+
+return config
