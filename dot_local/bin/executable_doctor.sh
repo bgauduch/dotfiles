@@ -29,7 +29,7 @@ echo "== zsh plugins pinned (ADR-0003) =="
 lock=""; have chezmoi && lock="$(chezmoi source-path)/zsh-plugins.lock"
 dir="$HOME/.local/share/zsh/plugins"
 if [ -n "$lock" ] && [ -f "$lock" ]; then
-  while read -r name url sha tag _; do
+  while read -r name _url sha _tag _; do
     case "$name" in ""|\#*) continue ;; esac
     if [ -d "$dir/$name/.git" ]; then
       head="$(git -C "$dir/$name" rev-parse HEAD)"

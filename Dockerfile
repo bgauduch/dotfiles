@@ -20,10 +20,11 @@ ENV PATH="/home/${USER}/.local/bin:/home/${USER}/.local/share/mise/shims:${PATH}
 # Bring the dotfiles in as the chezmoi source state.
 COPY --chown=${USER}:${USER} . /home/${USER}/.local/share/chezmoi
 
-# Install chezmoi, then init + apply non-interactively (prompts are mocked).
+# Install chezmoi, then init + apply non-interactively (prompts via env vars).
+ENV CHEZMOI_NAME="CI User" \
+    CHEZMOI_EMAIL="ci@example.com"
 RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${HOME}/.local/bin" \
- && chezmoi init --apply --source="${HOME}/.local/share/chezmoi" \
-      --promptString name="CI User" --promptString email="ci@example.com"
+ && chezmoi init --apply --source="${HOME}/.local/share/chezmoi"
 
 # Assert the core stack is installed, then run the smoke-test (informational).
 RUN for b in zsh mise zellij helix yazi lazygit starship; do \

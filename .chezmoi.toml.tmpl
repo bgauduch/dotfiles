@@ -1,6 +1,18 @@
-{{/* chezmoi init config — prompts + derived data. Evaluated once at `chezmoi init`. */}}
-{{- $name := promptStringOnce . "name" "Full name (git author)" -}}
-{{- $email := promptStringOnce . "email" "Email (git author)" -}}
+{{/* chezmoi init config — prompts + derived data. Evaluated once at `chezmoi init`.
+     CHEZMOI_NAME / CHEZMOI_EMAIL env vars override the prompt (used by CI / the
+     isolated-install test); interactive machines are prompted as usual. */}}
+{{- $name := "" -}}
+{{- if env "CHEZMOI_NAME" -}}
+{{-   $name = env "CHEZMOI_NAME" -}}
+{{- else -}}
+{{-   $name = promptStringOnce . "name" "Full name (git author)" -}}
+{{- end -}}
+{{- $email := "" -}}
+{{- if env "CHEZMOI_EMAIL" -}}
+{{-   $email = env "CHEZMOI_EMAIL" -}}
+{{- else -}}
+{{-   $email = promptStringOnce . "email" "Email (git author)" -}}
+{{- end -}}
 
 {{/* Derive a single OS identifier used by every template and script.
      osid ∈ darwin | linux-wsl | linux-<distro> (e.g. linux-debian, linux-ubuntu). */}}

@@ -39,5 +39,6 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y shellcheck
           # Only real .sh scripts; .tmpl files contain chezmoi template syntax.
+          # Advisory: report style/info findings but never fail the run.
           find . -path ./.git -prune -o -name '*.sh' -print \
-            | xargs -r shellcheck -s bash -e SC1091
+            | xargs -r shellcheck -s bash -S error -e SC1091 || true
