@@ -1,5 +1,11 @@
 # dotfiles
 
+[![integration-test](https://github.com/bgauduch/dotfiles/actions/workflows/integration-test.yml/badge.svg)](https://github.com/bgauduch/dotfiles/actions/workflows/integration-test.yml)
+[![commit-lint](https://github.com/bgauduch/dotfiles/actions/workflows/commit-lint.yml/badge.svg)](https://github.com/bgauduch/dotfiles/actions/workflows/commit-lint.yml)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://docs.renovatebot.com)
+[![managed with chezmoi](https://img.shields.io/badge/managed%20with-chezmoi-blueviolet)](https://chezmoi.io)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Portable, security-conscious TUI development environment — identical on **macOS** and
 **WSL2/Debian** — managed by [chezmoi](https://chezmoi.io). Decisions are traced as ADRs in
 [`docs/adr/`](docs/adr/); the threat model and operational runbook live in
