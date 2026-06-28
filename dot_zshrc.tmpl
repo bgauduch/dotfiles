@@ -1,0 +1,43 @@
+# ~/.zshrc — managed by chezmoi (PLAN Phase 5bis). Ordered sections; order matters.
+# Native Zsh, no plugin-manager (OMZ/antidote rejected, ADR-0003).
+
+# --- 0) History hygiene ---
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS INC_APPEND_HISTORY
+
+# --- 1) Exports / PATH (OS-templated) ---
+{{ if eq .chezmoi.os "darwin" -}}
+eval "$(/opt/homebrew/bin/brew shellenv)"
+{{- else -}}
+export PATH="$HOME/.local/bin:$PATH"
+{{- end }}
+export EDITOR="hx"
+export VISUAL="hx"
+
+# --- 2) Tool init ---
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
+# --- 3) Plugins (vendored, SHA-pinned — ADR-0003) ---
+# zsh-syntax-highlighting MUST be sourced LAST or highlighting breaks.
+ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
+[ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
+  source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+[ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && \
+  source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# --- 4) Prompt — initialised LAST so it overrides any residual theme ---
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi
+
+# --- 5) Custom aliases / functions (mine) ---
+# TODO(shell-audit): paste the "à moi" block here verbatim once the audit is run
+# on the real machine. Procedure: docs/PLAN_AUDIT_SHELL.md.
+
+# --- 6) Recovered Oh-My-Zsh aliases (only those confirmed used by the audit) ---
+# TODO(shell-audit): redefine the handful of OMZ git aliases actually typed
+# (e.g. gst/gco/gp), cross-checked against shell history. Do NOT reintroduce OMZ.
