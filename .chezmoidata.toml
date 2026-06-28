@@ -1,0 +1,14 @@
+# Static shared data — single source of truth referenced by every config template.
+# Moving state (tool versions, plugin SHAs) lives in dedicated lockfiles (ADR-0000),
+# NOT here. This file holds only durable, cross-OS presentation choices.
+
+[theme]
+    # Catppuccin Mocha, used consistently across WezTerm/Helix/Zellij/Lazygit/Starship
+    # so the stack reads as one environment (ADR-0008 "cohérence visuelle").
+    name = "catppuccin"
+    flavor = "mocha"
+
+[font]
+    family = "Hack Nerd Font"
+    size_darwin = 14
+    size_linux = 11

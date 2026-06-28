@@ -1,0 +1,25 @@
+{{/* OS-conditional ignores. Differences are handled by templates, not duplicate
+     files — this only drops whole files that make no sense on a given OS. */}}
+
+{{/* Brewfile is macOS-only (ADR-0002: no Homebrew on Linux/WSL). */}}
+{{- if ne .chezmoi.os "darwin" }}
+Brewfile
+{{- end }}
+
+{{/* On WSL2, WezTerm runs on the Windows side, not inside the Linux $HOME
+     (ADR-0008 seam). Don't render the emulator config into the WSL home. */}}
+{{- if eq .osid "linux-wsl" }}
+.config/wezterm
+{{- end }}
+
+{{/* Repo-management files living at the source root must NOT be deployed to $HOME.
+     (Entries beginning with "." — .git, .github, .chezmoi* — are ignored by chezmoi
+     automatically and need no listing here.) */}}
+README.md
+LICENSE
+docs
+Dockerfile
+Containerfile
+Makefile
+zsh-plugins.lock
+mise.lock

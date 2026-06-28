@@ -1,0 +1,19 @@
+{{/* chezmoi init config — prompts + derived data. Evaluated once at `chezmoi init`. */}}
+{{- $name := promptStringOnce . "name" "Full name (git author)" -}}
+{{- $email := promptStringOnce . "email" "Email (git author)" -}}
+
+{{/* Derive a single OS identifier used by every template and script.
+     osid ∈ darwin | linux-wsl | linux-<distro> (e.g. linux-debian, linux-ubuntu). */}}
+{{- $osid := .chezmoi.os -}}
+{{- if eq .chezmoi.os "linux" -}}
+{{-   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+{{-     $osid = "linux-wsl" -}}
+{{-   else -}}
+{{-     $osid = printf "linux-%s" (.chezmoi.osRelease.id | default "unknown") -}}
+{{-   end -}}
+{{- end -}}
+
+[data]
+    name = {{ $name | quote }}
+    email = {{ $email | quote }}
+    osid = {{ $osid | quote }}
