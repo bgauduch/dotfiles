@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Materialise the tools declared in ~/.config/mise/config.toml. Runs after files
+# are applied (so the config is in place). Re-runs only when content changes.
+set -euo pipefail
+
+have() { command -v "$1" >/dev/null 2>&1; }
+export PATH="${HOME}/.local/bin:${PATH}"
+
+if ! have mise; then
+  echo "mise not found on PATH — skipping (install-tools should have bootstrapped it)" >&2
+  exit 0
+fi
+
+# Provenance verification ACTIVE (ADR-0003): checksums checked at install, exact
+# versions pinned into mise.lock. Belt-and-suspenders with [settings] in config.toml.
+mise settings set lockfile true 2>/dev/null || true
+
+# Install everything from the global config. mise install is idempotent.
+mise install -y
+
+echo "==> mise-install done. Commit the generated mise.lock to pin versions (ADR-0003)."
