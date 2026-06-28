@@ -7,40 +7,41 @@ review-by: trigger:adoption-nix
 supersedes: []
 ---
 
-# ADR-0001 — chezmoi comme gestionnaire de dotfiles cross-OS
+# ADR-0001 — chezmoi as the cross-OS dotfiles manager
 
-## Contexte et énoncé du problème
-Besoin d'un environnement identique sur macOS (poste principal) et WSL2/Debian, à partir d'une
-source de vérité unique versionnée. Les différences entre OS (paths Homebrew, clipboard, WSL)
-doivent être gérées sans dupliquer des fichiers par machine.
+## Context and problem statement
+Need for an identical environment on macOS (main machine) and WSL2/Debian, from a single
+versioned source of truth. The differences between operating systems (Homebrew paths, clipboard,
+WSL) must be handled without duplicating files per machine.
 
-## Drivers de décision
-- Source unique versionnée (cohérent avec workflow GitLab existant).
-- Gestion des différences OS par templating, pas par duplication.
-- Pas de runtime lourd ; dépendances minimales.
-- Bootstrap one-liner sur une machine neuve.
+## Decision drivers
+- Single versioned source (consistent with the existing GitLab workflow).
+- Handling OS differences through templating, not duplication.
+- No heavy runtime; minimal dependencies.
+- One-liner bootstrap on a fresh machine.
 
-## Options considérées
-- Option A — **chezmoi** : mapping 1:1 source→home, templating Go, détection OS native.
-- Option B — **GNU Stow** : symlinks purs, simple, mais aucun templating (différences OS = fichiers séparés).
-- Option C — **yadm** : git wrapper, templating plus limité que chezmoi.
-- Option D — **Nix/home-manager** : reproductibilité maximale (voir ADR-0006).
+## Considered options
+- Option A — **chezmoi**: 1:1 source→home mapping, Go templating, native OS detection.
+- Option B — **GNU Stow**: pure symlinks, simple, but no templating (OS differences = separate files).
+- Option C — **yadm**: git wrapper, more limited templating than chezmoi.
+- Option D — **Nix/home-manager**: maximum reproducibility (see ADR-0006).
 
-## Décision
-**chezmoi.** Il offre le templating OS (`{{ if eq .chezmoi.os "darwin" }}`, détection WSL via
-`.chezmoi.kernel.osrelease`) qui permet un fichier unique par config, des scripts de cycle de vie
-(`run_once_`, `run_onchange_`) pour l'install idempotente, et un bootstrap one-liner. Stow est
-écarté car l'absence de templating forcerait des fichiers dupliqués macOS/Linux — l'anti-objectif.
+## Decision
+**chezmoi.** It offers OS templating (`{{ if eq .chezmoi.os "darwin" }}`, WSL detection via
+`.chezmoi.kernel.osrelease`) that allows a single file per config, lifecycle scripts
+(`run_once_`, `run_onchange_`) for idempotent installs, and a one-liner bootstrap. Stow is
+ruled out because the absence of templating would force duplicated macOS/Linux files — the
+anti-goal.
 
-## Conséquences
-- Bonnes : un seul fichier par config, différences OS lisibles inline, install reproductible.
-- Mauvaises : courbe sur la syntaxe template Go ; le source state n'est pas éditable "en place"
-  (il faut passer par `chezmoi edit` / `chezmoi add`). Accepté.
+## Consequences
+- Good: a single file per config, OS differences readable inline, reproducible install.
+- Bad: a learning curve on the Go template syntax; the source state is not editable "in place"
+  (you have to go through `chezmoi edit` / `chezmoi add`). Accepted.
 
-## Comparatif
-| Critère | chezmoi | Stow | yadm | Nix/HM |
+## Comparison
+| Criterion | chezmoi | Stow | yadm | Nix/HM |
 |---|---|---|---|---|
-| Templating OS | ✅ natif | ❌ | ~ | ✅ |
-| Dépendance runtime | 1 binaire | perl | git | toolchain Nix |
-| Courbe | moyenne | faible | faible | élevée |
-| Reproductibilité | configs | configs | configs | système complet |
+| OS templating | ✅ native | ❌ | ~ | ✅ |
+| Runtime dependency | 1 binary | perl | git | Nix toolchain |
+| Learning curve | medium | low | low | high |
+| Reproducibility | configs | configs | configs | full system |

@@ -7,89 +7,88 @@ review-by: 2027-06-28
 supersedes: []
 ---
 
-# ADR-0007 — Audit de sécurité récurrent : CI bloquant + pre-commit avertissement
+# ADR-0007 — Recurring security audit: blocking CI + pre-commit warning
 
-> **Statut `proposed` (niveau 2, implémentation différée).** Au **niveau 1** (socle, ADR-0006),
-> seul **gitleaks** (secrets) tourne en pre-commit (warn) + CI (bloquant) ; les gates déterministes
-> de plugins/cross-witness/lint ADR relient ADR-0003 et ne sont construits qu'au passage niveau 2.
-> La matrice complète ci-dessous est la **cible**, pas l'état courant.
+> **Status `proposed` (level 2, implementation deferred).** At **level 1** (foundation, ADR-0006),
+> only **gitleaks** (secrets) runs in pre-commit (warn) + CI (blocking); the deterministic gates
+> for plugins/cross-witness/ADR lint relate to ADR-0003 and are only built when moving to level 2.
+> The full matrix below is the **target**, not the current state.
 
-## Contexte et énoncé du problème
-L'audit shell a été joué une fois à la main. Pour qu'il ait de la valeur dans le temps, il doit se
-rejouer automatiquement et détecter toute dérive (plugin dépinglé, clé globale ajoutée, secret en
-clair, deny manquant). Choix exprimé : CI bloquant + pre-commit avertissement.
+## Context and problem statement
+The shell audit was run once by hand. For it to have value over time, it must
+re-run automatically and detect any drift (unpinned plugin, global key added, plaintext
+secret, missing deny). Stated choice: blocking CI + pre-commit warning.
 
-## Drivers de décision
-- Détecter la dérive de configuration à chaque modification.
-- Ne pas bloquer le flow local (friction), mais bloquer l'intégration (garantie).
-- Réutiliser la logique de gates déterministes d'ADR-0003.
+## Decision drivers
+- Detect configuration drift on each change.
+- Don't block the local flow (friction), but block integration (guarantee).
+- Reuse the deterministic gate logic from ADR-0003.
 
-## Options considérées
-- Option A — Audit manuel ponctuel : insuffisant (oubli).
-- Option B — Pre-commit bloquant : trop de friction locale, pousse au `--no-verify`.
-- Option C — **CI bloquant (source de vérité) + pre-commit non-bloquant (feedback rapide).**
+## Considered options
+- Option A — One-off manual audit: insufficient (forgetting).
+- Option B — Blocking pre-commit: too much local friction, pushes toward `--no-verify`.
+- Option C — **Blocking CI (source of truth) + non-blocking pre-commit (fast feedback).**
 
-## Décision
+## Decision
 **Option C.**
-- **Pre-commit (avertissement)** : hook rapide qui lance les checks "cheap" (secrets en clair,
-  plugin drift vs lockfile, présence des deny Claude Code) et **avertit** sans bloquer le commit.
-  But : feedback immédiat, zéro incitation au contournement.
-- **CI (bloquant)** : pipeline dotfiles (GitLab CI, cohérent avec la forge existante) qui rejoue
-  l'audit complet et **échoue** si un gate rouge. Source de vérité : rien n'est mergé sur `main`
-  avec un gate rouge.
+- **Pre-commit (warning)**: a fast hook that runs the "cheap" checks (plaintext secrets,
+  plugin drift vs lockfile, presence of the Claude Code deny rules) and **warns** without blocking the
+  commit. Goal: immediate feedback, zero incentive to bypass.
+- **CI (blocking)**: a dotfiles pipeline (GitLab CI, consistent with the existing forge) that re-runs
+  the full audit and **fails** if a gate is red. Source of truth: nothing is merged to `main`
+  with a red gate.
 
-### Forge & modèle de branches
-> **Amendé par [ADR-0009](0009-ci-integration-test.md)** : le dépôt vit sur **GitHub**, la CI est
-> donc réalisée en **GitHub Actions** (pas GitLab CI), avec un test d'intégration "install isolée"
-> à chaque commit. Le modèle de branches ci-dessous reste valable (PR + CI bloquante sur `main`).
-- **Forge** : GitLab (aligne l'écosystème existant). Le CLI de revue PR/run est `glab`, pas `gh`
-  (aligné sur ADR-0008).
-- **Modèle** : MR obligatoire + CI bloquante sur `main` (pas de push direct).
-- **Porte de sortie assumée (anti-érosion solo)** : bascule **trunk + CI non-bloquante** actée
-  *sans superseding* si la friction solo dépasse le bénéfice. **Déclencheur explicite** : 1er
-  `--no-verify` ou 1er contournement de la MR. La garantie dépend de la discipline ; ce déclencheur
-  évite le déni (on bascule officiellement au lieu de contourner en silence).
+### Forge & branch model
+> **Amended by [ADR-0009](0009-ci-integration-test.md)**: the repository lives on **GitHub**, so the CI
+> runs on **GitHub Actions** (not GitLab CI), with an "isolated install" integration test
+> on each commit. The branch model below remains valid (PR + blocking CI on `main`).
+- **Forge**: GitLab (aligns with the existing ecosystem). The PR/run review CLI is `glab`, not `gh`
+  (aligned with ADR-0008).
+- **Model**: mandatory MR + blocking CI on `main` (no direct push).
+- **Accepted escape hatch (anti-erosion, solo)**: switch to **trunk + non-blocking CI** enacted
+  *without superseding* if the solo friction outweighs the benefit. **Explicit trigger**: the first
+  `--no-verify` or the first MR bypass. The guarantee depends on discipline; this trigger
+  avoids denial (we switch officially instead of bypassing silently).
 
-### Contenu de l'audit (réutilise audit/gates/ + audit/scan/)
-| Check | Couche | Pre-commit | CI |
+### Audit content (reuses audit/gates/ + audit/scan/)
+| Check | Layer | Pre-commit | CI |
 |---|---|---|---|
-| Secrets en clair (gitleaks/regex) | toutes | warn | bloquant |
-| Plugin SHA == lockfile | shell | warn | bloquant |
-| Soak time des bumps proposés | shell | – | bloquant |
-| `git tag -v` GPG des plugins | shell | – | bloquant |
-| Cross-witness tree-hash | shell | – | warn (dégradé si pas de témoin) |
-| Scan heuristique diff plugins | shell | warn | bloquant si signaux forts |
-| Brewfile/mise vs lockfile (drift versions) | outils | warn | bloquant |
-| Pas de clé apt en keyring global | outils | – | bloquant (Linux) |
-| Deny secrets présents (Claude settings) | agents | warn | bloquant |
-| MCP servers ∈ allowlist | agents | – | bloquant |
-| Vérif provenance mise active (pas juste lockfile présent) | outils | warn | bloquant (niveau 1) |
-| LSP auto-lancés ∈ languages.toml déclarés | exec continu | – | bloquant |
-| Aucun secret en clair rendu hors *.tmpl | secrets | warn | bloquant |
-| ADR security-relevant ont les 4 champs | méta | warn | bloquant (lint) |
+| Plaintext secrets (gitleaks/regex) | all | warn | blocking |
+| Plugin SHA == lockfile | shell | warn | blocking |
+| Soak time of proposed bumps | shell | – | blocking |
+| `git tag -v` GPG of plugins | shell | – | blocking |
+| Cross-witness tree-hash | shell | – | warn (degraded if no witness) |
+| Heuristic scan of plugin diff | shell | warn | blocking if strong signals |
+| Brewfile/mise vs lockfile (version drift) | tools | warn | blocking |
+| No apt key in the global keyring | tools | – | blocking (Linux) |
+| Deny secrets present (Claude settings) | agents | warn | blocking |
+| MCP servers ∈ allowlist | agents | – | blocking |
+| Active mise provenance check (not just lockfile present) | tools | warn | blocking (level 1) |
+| Auto-launched LSPs ∈ declared languages.toml | continuous exec | – | blocking |
+| No plaintext secret rendered outside *.tmpl | secrets | warn | blocking |
+| security-relevant ADRs have the 4 fields | meta | warn | blocking (lint) |
 
-## Conséquences
-- Bonnes : dérive détectée tôt (local) et barrée tard (CI) ; logique partagée avec le rituel de bump.
-- Mauvaises : double maintenance pre-commit/CI (mitigée en appelant le même script depuis les deux).
+## Consequences
+- Good: drift detected early (local) and blocked late (CI); logic shared with the bump ritual.
+- Bad: dual pre-commit/CI maintenance (mitigated by calling the same script from both).
 
-## Menaces adressées
-- **T-SC-01..07** (dérive vers une dépendance non validée) : drift bloqué en CI.
-- **T-CR-02** (secret commité par erreur) : gitleaks pre-commit + CI.
-- **T-AG-02** (MCP hors allowlist ajouté discrètement) : check CI bloquant.
+## Threats addressed
+- **T-SC-01..07** (drift toward an unvalidated dependency): drift blocked in CI.
+- **T-CR-02** (secret committed by mistake): gitleaks pre-commit + CI.
+- **T-AG-02** (MCP outside the allowlist added quietly): blocking CI check.
 
-## Surface d'attaque résiduelle
-- Pre-commit est contournable (`--no-verify`) **par conception** → c'est pourquoi la garantie est
-  en CI, pas en local.
-- L'audit ne détecte que les dérives qu'on a codées en gate ; une classe d'attaque nouvelle non
-  modélisée passe (mitigé par la revue annuelle des signaux, ADR-0003).
-- Le scan heuristique a les limites d'ADR-0003 (pas une preuve).
+## Residual attack surface
+- Pre-commit is bypassable (`--no-verify`) **by design** → that is why the guarantee is
+  in CI, not locally.
+- The audit only detects the drifts we have coded as a gate; a new, unmodeled attack
+  class gets through (mitigated by the annual review of signals, ADR-0003).
+- The heuristic scan has the limits of ADR-0003 (not a proof).
 
-## Revue / expiration
-Revue annuelle de la matrice de checks ; ajout d'un gate à chaque nouvelle classe de menace
-identifiée.
+## Review / expiry
+Annual review of the check matrix; add a gate for each newly identified threat class.
 
-## Vérification
+## Verification
 ```sh
-audit/run.sh --mode ci      # code retour ≠ 0 si un gate bloquant échoue
-audit/run.sh --mode pre-commit   # n'échoue jamais, imprime des warnings
+audit/run.sh --mode ci      # return code ≠ 0 if a blocking gate fails
+audit/run.sh --mode pre-commit   # never fails, prints warnings
 ```

@@ -1,50 +1,50 @@
-# PLAN — Audit shell (Oh-My-Zsh → Zsh natif)
+# PLAN — Shell audit (Oh-My-Zsh → native Zsh)
 
-> **Prérequis de la Phase 5bis** (PLAN_SETUP_TUI). À exécuter **sur la machine réelle**
-> avant de remplir les sections 5 et 6 de `dot_zshrc.tmpl`. Ne peut pas tourner dans le
-> conteneur cloud (nécessite le `~/.zshrc`, `~/.oh-my-zsh` et l'historique de l'utilisateur).
+> **Prerequisite for Phase 5bis** (PLAN_SETUP_TUI). Run **on the real machine**
+> before filling in sections 5 and 6 of `dot_zshrc.tmpl`. Cannot run in the
+> cloud container (needs the user's `~/.zshrc`, `~/.oh-my-zsh` and history).
 
-## Objectif
-Inventorier ce qui est réellement utilisé dans le setup Oh-My-Zsh actuel, pour ne porter vers
-le `.zshrc` natif **que** les alias/fonctions/plugins utiles — pas tout OMZ. Décision déjà
-tranchée (ADR-0003) : Zsh natif + 2 plugins vendored épinglés, zéro plugin-manager.
+## Goal
+Inventory what is actually used in the current Oh-My-Zsh setup, so we port **only** the useful
+aliases/functions/plugins to the native `.zshrc` — not all of OMZ. The decision is already
+made (ADR-0003): native Zsh + 2 vendored, pinned plugins, no plugin manager.
 
-## Procédure
+## Procedure
 
-### 1. Snapshot de l'existant
+### 1. Snapshot of the current state
 ```sh
-# Alias et fonctions effectivement chargés dans le shell courant
+# Aliases and functions actually loaded in the current shell
 alias | sort > ~/omz-snapshot-aliases.txt
 print -l ${(k)functions} | sort > ~/omz-snapshot-functions.txt
-# Plugins OMZ activés
+# Enabled OMZ plugins
 grep -E '^\s*plugins=' ~/.zshrc > ~/omz-plugins.txt || true
 ```
 
-### 2. Croisement avec l'usage réel (historique)
+### 2. Cross-check against real usage (history)
 ```sh
-# Top des commandes tapées — pour savoir quels alias OMZ sont vraiment utilisés
+# Most-typed commands — to learn which OMZ aliases are really used
 fc -l 1 | awk '{print $2}' | sort | uniq -c | sort -rn | head -50 > ~/omz-usage.txt
 ```
-Croiser `omz-usage.txt` avec `omz-snapshot-aliases.txt` : ne retenir que les alias OMZ
-(ex. plugin git : `gst`/`gco`/`gp`…) qui apparaissent réellement dans l'historique.
+Cross-reference `omz-usage.txt` with `omz-snapshot-aliases.txt`: keep only the OMZ aliases
+(e.g. the git plugin: `gst`/`gco`/`gp`…) that actually appear in the history.
 
-### 3. Séparer "à moi" vs "fourni par OMZ"
-- Bloc **"à moi"** : alias/fonctions définis par l'utilisateur dans `~/.zshrc`/`~/.zsh/` →
-  recopiés **verbatim** en section 5 de `dot_zshrc.tmpl`.
-- Bloc **OMZ regrettés** : uniquement les alias OMZ confirmés par l'étape 2 → **redéfinis à la
-  main** en section 6 (ne PAS réintroduire OMZ).
+### 3. Separate "mine" vs "provided by OMZ"
+- **"Mine"** block: aliases/functions defined by the user in `~/.zshrc`/`~/.zsh/` →
+  copied **verbatim** into section 5 of `dot_zshrc.tmpl`.
+- **OMZ-missed** block: only the OMZ aliases confirmed in step 2 → **redefined by hand**
+  in section 6 (do NOT reintroduce OMZ).
 
-### 4. Intégration
-Remplir les sections 5 et 6 de `dot_zshrc.tmpl`, puis `chezmoi apply`.
+### 4. Integration
+Fill in sections 5 and 6 of `dot_zshrc.tmpl`, then `chezmoi apply`.
 
-### 5. Filet de sécurité (vérification post-migration)
+### 5. Safety net (post-migration check)
 ```sh
 alias | sort > ~/native-aliases.txt
 diff <(sort ~/omz-snapshot-aliases.txt) <(sort ~/native-aliases.txt)
 ```
-Le diff ne doit plus contenir que des alias OMZ **volontairement abandonnés**. Sinon : STOP,
-compléter la section 6, recommencer.
+The diff should only contain OMZ aliases that were **deliberately dropped**. Otherwise: STOP,
+complete section 6, start over.
 
-## Sortie attendue
-- Sections 5 et 6 de `dot_zshrc.tmpl` remplies.
-- `~/omz-snapshot-*.txt` conservés le temps de la migration (jetables ensuite).
+## Expected output
+- Sections 5 and 6 of `dot_zshrc.tmpl` filled in.
+- `~/omz-snapshot-*.txt` kept for the duration of the migration (disposable afterward).

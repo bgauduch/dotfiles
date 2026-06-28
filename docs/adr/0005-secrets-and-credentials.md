@@ -7,62 +7,61 @@ review-by: 2027-06-28
 supersedes: []
 ---
 
-# ADR-0005 — Secrets & credentials (stockage, provisioning machine neuve)
+# ADR-0005 — Secrets & credentials (storage, new-machine provisioning)
 
-## Contexte et énoncé du problème
-chezmoi gère les *configs* ; rien ne décidait où vivent les **secrets** et **accès** : clés SSH,
-credentials AWS multi-comptes, tokens GitLab/GitHub. C'est l'actif central du threat model (poste
-freelance Cloud/IaC). "Pas de secret en clair dans le repo" est nécessaire mais insuffisant : il
-faut une source de vérité *positive* et un flux de bootstrap explicite. Deux natures distinctes :
-secrets **statiques** (à stocker/récupérer) et **accès AWS** (où le bon réflexe est de ne RIEN
-stocker).
+## Context and problem statement
+chezmoi manages the *configs*; nothing decided where the **secrets** and **access** live: SSH
+keys, multi-account AWS credentials, GitLab/GitHub tokens. This is the central asset of the threat model (a
+freelance Cloud/IaC workstation). "No plaintext secret in the repo" is necessary but not sufficient: we
+need a *positive* source of truth and an explicit bootstrap flow. Two distinct kinds:
+**static** secrets (to store/retrieve) and **AWS access** (where the right reflex is to store NOTHING).
 
-## Drivers de décision
-- Source unique, jamais de secret en clair dans git.
-- Bootstrap machine neuve déterministe et tracé.
-- Réutiliser l'outillage en place ; découpler config / secret.
-- Minimiser les secrets longue-durée matérialisés sur disque.
+## Decision drivers
+- Single source, never a plaintext secret in git.
+- Deterministic and traced new-machine bootstrap.
+- Reuse the tooling already in place; decouple config / secret.
+- Minimize long-lived secrets materialized on disk.
 
-## Options considérées
-- **Bitwarden CLI + templates chezmoi** (statiques) : déjà en place ; injection au `apply`.
-- SOPS + age : chiffré dans le repo, autonome, mais déplace le problème vers la clé age.
-- Manuel/RUNBOOK seul : zéro dépendance mais MTTR élevé et faillible.
-- Pour AWS : clés statiques (Bitwarden→`~/.aws/credentials`) **vs** SSO/granted (creds temporaires).
+## Considered options
+- **Bitwarden CLI + chezmoi templates** (static): already in place; injected at `apply`.
+- SOPS + age: encrypted in the repo, self-contained, but moves the problem to the age key.
+- Manual/RUNBOOK only: zero dependencies but high MTTR and error-prone.
+- For AWS: static keys (Bitwarden→`~/.aws/credentials`) **vs** SSO/granted (temporary credentials).
 
-## Décision
-1. **Secrets statiques → Bitwarden CLI**, injectés par template chezmoi : fichiers `*.tmpl`
-   appelant `{{ (bitwarden "item" "<id>").<champ> }}`, rendus seulement au `chezmoi apply`, jamais
-   committés. Le repo ne contient que des **IDs d'items**, jamais des valeurs.
-2. **Accès AWS → SSO / `granted` (creds temporaires), ZÉRO clé statique** par défaut. Login
-   interactif par profil/compte ; fallback `aws-vault` (backend keychain OS) **uniquement** pour un
-   compte sans SSO. Aucune clé long-terme sur disque ; Bitwarden ne sert qu'au *transport* d'un
-   secret long-terme inévitable, pas à remplacer un SSO.
-3. **Bootstrap & ordre cold-start** : `bw unlock` AVANT le premier `chezmoi apply` ; clone du repo
-   privé en **HTTPS + token** (issu du vault) pour éviter le deadlock clé-SSH ⇄ repo. Procédure :
+## Decision
+1. **Static secrets → Bitwarden CLI**, injected by chezmoi template: `*.tmpl` files
+   calling `{{ (bitwarden "item" "<id>").<field> }}`, rendered only at `chezmoi apply`, never
+   committed. The repo only contains **item IDs**, never values.
+2. **AWS access → SSO / `granted` (temporary credentials), ZERO static keys** by default. Interactive
+   login per profile/account; fallback to `aws-vault` (OS keychain backend) **only** for an
+   account without SSO. No long-term key on disk; Bitwarden is used only to *transport* an
+   unavoidable long-term secret, not to replace an SSO.
+3. **Bootstrap & cold-start order**: `bw unlock` BEFORE the first `chezmoi apply`; clone the
+   private repo over **HTTPS + token** (from the vault) to avoid the SSH-key ⇄ repo deadlock. Procedure:
    RUNBOOK.
 
-## Conséquences
-- Bonnes : source unique, rien en clair, bootstrap tracé, pas de clé AWS statique ; repo publiable
-  sans fuite.
-- Mauvaises : dépendance à `bw`/réseau au `apply` (échec lisible si vault verrouillé) ; login SSO
-  interactif par session (friction mineure assumée).
+## Consequences
+- Good: single source, nothing in plaintext, traced bootstrap, no static AWS key; the repo can be
+  published without leaks.
+- Bad: dependency on `bw`/network at `apply` (readable failure if the vault is locked); interactive SSO
+  login per session (minor friction, accepted).
 
-## Menaces adressées
-- **T-CR-03** (secret en clair par erreur / geste secret implicite oublié) : références-only +
-  bootstrap documenté + zéro clé statique AWS.
+## Threats addressed
+- **T-CR-03** (plaintext secret by mistake / implicit secret gesture forgotten): references-only +
+  documented bootstrap + zero static AWS key.
 
-## Surface d'attaque résiduelle
-- **Vault Bitwarden compromis** (compte/master password) : hors périmètre (hypothèse "compte amont
-  sain"), mitigé par 2FA.
-- Secrets **matérialisés sur disque** après apply : minimiser ; préférer agents/SSO en mémoire.
-- `bw` est un binaire à provenance vérifiée (ADR-0003).
+## Residual attack surface
+- **Bitwarden vault compromised** (account/master password): out of scope (assumes an "upstream
+  account is healthy"), mitigated by 2FA.
+- Secrets **materialized on disk** after apply: minimize; prefer in-memory agents/SSO.
+- `bw` is a binary with verified provenance (ADR-0003).
 
-## Revue / expiration
-Revue annuelle ; immédiate à l'ajout d'un type de credential ou d'un changement de gestionnaire.
+## Review / expiry
+Reviewed annually; immediately on adding a credential type or changing the manager.
 
-## Vérification
+## Verification
 ```sh
 grep -rIl --exclude='*.tmpl' -E 'AKIA|BEGIN [A-Z ]*PRIVATE KEY|glpat-|ghp_' ~/.local/share/chezmoi \
-  && echo "SECRET EN CLAIR" || echo OK
-test -f ~/.aws/credentials && echo "ATTENTION clé statique AWS présente" || echo "AWS sans clé statique OK"
+  && echo "PLAINTEXT SECRET" || echo OK
+test -f ~/.aws/credentials && echo "WARNING static AWS key present" || echo "AWS without static key OK"
 ```

@@ -1,6 +1,6 @@
 # Global mise config — runtimes (all OS) + TUI dev tools (Linux/WSL only).
 #
-# Routing (ADR-0002 "source unique par outil"): on macOS the TUI tools come from
+# Routing (ADR-0002 "one manager per tool"): on macOS the TUI tools come from
 # Homebrew (see Brewfile), so they are templated OUT here to avoid a two-manager
 # duplicate. On Linux/WSL mise is the cross-OS layer that pins identical versions.
 #
@@ -27,7 +27,7 @@ lazygit = "latest"
 starship = "latest"
 {{- end }}
 
-# --- LSP servers (ADR-0002: LSP = outils mise comme les autres) ---
+# --- LSP servers (ADR-0002: LSPs are mise tools like any other) ---
 # DEFERRED: added after confirming exact mise registry names on a real machine,
 # to keep the integration-test CI green. Intended set (see helix/languages.toml):
 #   terraform-ls, gopls, bash-language-server, yaml-language-server, marksman.

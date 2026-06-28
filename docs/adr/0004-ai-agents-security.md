@@ -7,73 +7,73 @@ review-by: 2027-01-28
 supersedes: []
 ---
 
-# ADR-0004 — Sécurité des agents IA (Claude Code, MCP, hooks)
+# ADR-0004 — AI agent security (Claude Code, MCP, hooks)
 
-## Contexte et énoncé du problème
-L'environnement héberge des agents IA (Claude Code, multi-instances via Zellij/worktrees, MCP
-servers, hooks shell), dans le même shell que mes credentials Cloud/IaC, avec capacité d'exécuter
-des commandes. Risques propres : prompt injection → exfiltration, MCP server malveillant/compromis,
-hooks exécutant du code arbitraire, lecture de `.env`/secrets. Le payload node-ipc 2026 ciblait les
-configs Claude/Kiro — les agents IA sont une cible nommée.
+## Context and problem statement
+The environment hosts AI agents (Claude Code, multiple instances via Zellij/worktrees, MCP
+servers, shell hooks), in the same shell as my Cloud/IaC credentials, with the ability to run
+commands. Specific risks: prompt injection → exfiltration, malicious/compromised MCP server,
+hooks running arbitrary code, reading `.env`/secrets. The 2026 node-ipc payload targeted the
+Claude/Kiro configs — AI agents are a named target.
 
-## Drivers de décision
-- Limiter ce qu'un agent (ou une injection le pilotant) peut faire à mes credentials.
-- Garder l'autonomie utile sans ouvrir une RCE.
-- Traçabilité des actions, **sans créer de passif de confidentialité** sur le code client.
+## Decision drivers
+- Limit what an agent (or an injection driving it) can do to my credentials.
+- Keep useful autonomy without opening an RCE.
+- Traceability of actions, **without creating a confidentiality liability** on client code.
 
-## Options considérées
-- Option A — Confiance totale (`--dangerously-skip-permissions`) : rejeté.
-- Option B — Permissions allow/deny/ask, sans isolation OS.
-- Option C — **Permissions calibrées + sandbox OS + MCP allowlistés/épinglés + hooks audités.**
+## Considered options
+- Option A — Full trust (`--dangerously-skip-permissions`): rejected.
+- Option B — allow/deny/ask permissions, without OS isolation.
+- Option C — **Calibrated permissions + OS sandbox + allowlisted/pinned MCP + audited hooks.**
 
-## Décision
-**Option C**, en couches (commandes/profils opératoires → RUNBOOK) :
-1. **Permissions Claude Code** (`~/.claude/settings.json`, géré par chezmoi) : `deny` sur
-   l'irréversible et les secrets (`Read(.env*)`, `Read(secrets/**)`, `rm -rf`, `git push --force`,
-   `terraform destroy`) ; `ask` sur `git push`, `terraform apply`, `aws` ; `allow` sur lecture/lint/
-   test. Premier match : deny > ask > allow.
-2. **Sandbox OS** : Seatbelt (macOS) / bubblewrap+socat (Linux/WSL2) — filet si une injection passe.
-   **Viabilité à prouver au démarrage** (cf surface résiduelle), pas à asserter.
-3. **MCP servers** : allowlist explicite, épinglés, traités comme une **dépendance** (cycle de
-   confiance ADR-0003). Pas de MCP arbitraire sans entrée lockfile.
-4. **Hooks** : hooks Claude Code → Zellij n'exécutent que des commandes locales **fixes**
-   (rename-tab), jamais de contenu dérivé du modèle. Audités en revue de config.
-5. **Isolation par worktree** : 1 agent = 1 worktree = 1 branche.
-6. **Traçabilité + rétention scindée perso/client.** On s'appuie sur les transcripts natifs
-   (`~/.claude/projects/`) — pas de logging custom. **MAIS** ces transcripts contiennent le code
-   client lu par l'agent : politique de rétention **scindée** — contexte **client = purge** (jamais
-   archivé hors machine), contexte **perso = conservable**. Évite de transformer la traçabilité en
-   passif de confidentialité.
-7. **Usage agent sur code client = sous réserve contractuelle.** Faire transiter du code client par
-   un agent IA (→ fournisseur tiers) n'est lancé **que si le contrat/DPA l'autorise**. À défaut :
-   cloisonnement (pas d'agent sur le code client). Décision business hors corpus, tranchée par moi.
+## Decision
+**Option C**, in layers (operational commands/profiles → RUNBOOK):
+1. **Claude Code permissions** (`~/.claude/settings.json`, managed by chezmoi): `deny` on the
+   irreversible and on secrets (`Read(.env*)`, `Read(secrets/**)`, `rm -rf`, `git push --force`,
+   `terraform destroy`); `ask` on `git push`, `terraform apply`, `aws`; `allow` on read/lint/
+   test. First match wins: deny > ask > allow.
+2. **OS sandbox**: Seatbelt (macOS) / bubblewrap+socat (Linux/WSL2) — a safety net if an injection gets through.
+   **Viability must be proven at startup** (see residual surface), not asserted.
+3. **MCP servers**: explicit allowlist, pinned, treated as a **dependency** (the trust
+   cycle of ADR-0003). No arbitrary MCP without a lockfile entry.
+4. **Hooks**: Claude Code → Zellij hooks only run **fixed** local commands
+   (rename-tab), never content derived from the model. Audited in config review.
+5. **Per-worktree isolation**: 1 agent = 1 worktree = 1 branch.
+6. **Traceability + split personal/client retention.** We rely on native transcripts
+   (`~/.claude/projects/`) — no custom logging. **BUT** these transcripts contain the client
+   code read by the agent: a **split** retention policy — client context = **purge** (never
+   archived off-machine), personal context = **may be kept**. This avoids turning traceability into
+   a confidentiality liability.
+7. **Agent use on client code = subject to contract.** Sending client code through
+   an AI agent (→ a third-party provider) is only started **if the contract/DPA allows it**. Otherwise:
+   partitioning (no agent on client code). A business decision outside this corpus, decided by me.
 
-## Conséquences
-- Bonnes : blast radius limité ; secrets hors de portée par défaut ; sandbox comme filet ; pas de
-  passif transcripts côté client.
-- Mauvaises : sandbox Linux nécessite bubblewrap+socat (install) ; quelques `ask` subsistent ;
-  cloisonnement client = autonomie réduite sur ces contextes (assumé).
+## Consequences
+- Good: limited blast radius; secrets out of reach by default; sandbox as a safety net; no
+  transcript liability on the client side.
+- Bad: the Linux sandbox needs bubblewrap+socat (install); a few `ask` prompts remain;
+  client partitioning = reduced autonomy on those contexts (accepted).
 
-## Menaces adressées
-- **T-CR-01** (exfil credentials via hook plugin) : deny `Read(.env*)`/`secrets/**` + sandbox (conjoint ADR-0003).
-- **T-AG-01** (prompt injection → exfil) : deny secrets + sandbox.
-- **T-AG-02** (MCP malveillant/compromis) : allowlist + épinglage + revue (ADR-0003).
-- **T-AG-03** (hook exécutant du contenu modèle) : hooks à commandes fixes.
-- **T-AG-04** (destruction d'infra : terraform destroy / push force) : deny + ask.
+## Threats addressed
+- **T-CR-01** (credential exfiltration via hook plugin): deny `Read(.env*)`/`secrets/**` + sandbox (jointly with ADR-0003).
+- **T-AG-01** (prompt injection → exfiltration): deny secrets + sandbox.
+- **T-AG-02** (malicious/compromised MCP): allowlist + pinning + review (ADR-0003).
+- **T-AG-03** (hook running model content): fixed-command hooks.
+- **T-AG-04** (infra destruction: terraform destroy / push force): deny + ask.
 
-## Surface d'attaque résiduelle
-- Une injection agit dans le périmètre **autorisé** (modifier du code du worktree courant) — la
-  sandbox limite l'OS, pas la logique permise.
-- **Sandbox à prouver** : bubblewrap/WSL2 (user namespaces) et Seatbelt (`sandbox-exec` déprécié)
-  fragiles ; `doctor.sh` confirme qu'elle tourne, sinon le filet est aspirationnel.
-- Binaires/MCP appelés par l'agent partagent la confiance d'**ADR-0003**.
-- Exfiltration via un canal **autorisé** (un `git push` approuvé) non éliminée.
+## Residual attack surface
+- An injection acts within the **permitted** scope (modifying code in the current worktree) — the
+  sandbox limits the OS, not the permitted logic.
+- **Sandbox to be proven**: bubblewrap/WSL2 (user namespaces) and Seatbelt (`sandbox-exec` deprecated)
+  are fragile; `doctor.sh` confirms it is running, otherwise the safety net is aspirational.
+- Binaries/MCP called by the agent share the trust of **ADR-0003**.
+- Exfiltration through an **authorized** channel (an approved `git push`) is not eliminated.
 
-## Revue / expiration
-Revue semestrielle (écosystème très mouvant) ; revue immédiate à chaque ajout de MCP server.
+## Review / expiry
+Reviewed every six months (the ecosystem moves fast); immediate review on each MCP server addition.
 
-## Vérification
+## Verification
 ```sh
-grep -q 'Read(.env' ~/.claude/settings.json && echo OK || echo "MANQUE deny secrets"
-command -v bwrap >/dev/null 2>&1 || [ "$(uname)" = Darwin ] || echo "sandbox Linux indispo"
+grep -q 'Read(.env' ~/.claude/settings.json && echo OK || echo "MISSING deny secrets"
+command -v bwrap >/dev/null 2>&1 || [ "$(uname)" = Darwin ] || echo "Linux sandbox unavailable"
 ```

@@ -1,55 +1,55 @@
-# PLAN — Setup TUI portable (chezmoi + Zellij + Helix + WezTerm + Yazi + Lazygit)
+# PLAN — Portable TUI setup (chezmoi + Zellij + Helix + WezTerm + Yazi + Lazygit)
 
-> À exécuter par Claude Code. **Démarre en plan mode** (`Shift+Tab`). Présente le plan,
-> attends validation, puis passe en `acceptEdits`. Ne touche JAMAIS à `~` directement :
-> tout passe par le source state chezmoi (`chezmoi add` / édition dans `~/.local/share/chezmoi`).
+> To be executed by Claude Code. **Start in plan mode** (`Shift+Tab`). Present the plan,
+> wait for approval, then switch to `acceptEdits`. NEVER touch `~` directly:
+> everything goes through the chezmoi source state (`chezmoi add` / editing in `~/.local/share/chezmoi`).
 
-## Objectif
-Remplacer VS Code + cmux par une stack terminal native, **identique sur macOS et WSL2/Debian**,
-gérée par un repo dotfiles chezmoi unique. Cibles : éditeur clavier léger (Helix), multiplexer
-multi-agent (Zellij), émulateur GPU (WezTerm), file-tree souris (Yazi), diff git visuel (Lazygit).
+## Goal
+Replace VS Code + cmux with a native terminal stack, **identical on macOS and WSL2/Debian**,
+managed by a single chezmoi dotfiles repo. Targets: lightweight keyboard editor (Helix), multi-agent
+multiplexer (Zellij), GPU emulator (WezTerm), mouse-driven file tree (Yazi), visual git diff (Lazygit).
 
-## Contraintes
-- **Source de vérité unique** : repo Git chezmoi. Aucune divergence de fichiers entre OS ;
-  les différences OSX/WSL2 sont gérées par templates `.tmpl`, pas par fichiers séparés.
-- **Toolchain via mise** (déjà utilisé) pour versionner les binaires à l'identique.
-- **Idempotent** : ré-exécutable sans casse. Scripts `run_onchange_`/`run_once_`.
-- **Pas de secret en clair** dans le repo (intégration Bitwarden CLI déjà en place, optionnelle ici).
-- Préférence formats ouverts, pas de lock-in.
+## Constraints
+- **Single source of truth**: the chezmoi Git repo. No file divergence between OSes;
+  OSX/WSL2 differences are handled by `.tmpl` templates, not by separate files.
+- **Toolchain via mise** (already in use) to version the binaries identically.
+- **Idempotent**: re-runnable without breakage. `run_onchange_`/`run_once_` scripts.
+- **No cleartext secret** in the repo (Bitwarden CLI integration already in place, optional here).
+- Preference for open formats, no lock-in.
 
-## Détection d'OS (à utiliser dans tous les templates)
-- macOS : `{{ if eq .chezmoi.os "darwin" }}`
-- Linux : `{{ else if eq .chezmoi.os "linux" }}`
-- WSL2 (sous-cas Linux) : `{{ if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}`
-- Debian (sous-cas Linux) : `{{ if eq .chezmoi.osRelease.id "debian" }}`
-Définir une variable custom `osid` dans `.chezmoidata` ou en tête de template pour simplifier :
+## OS detection (to use in all templates)
+- macOS: `{{ if eq .chezmoi.os "darwin" }}`
+- Linux: `{{ else if eq .chezmoi.os "linux" }}`
+- WSL2 (Linux sub-case): `{{ if (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}`
+- Debian (Linux sub-case): `{{ if eq .chezmoi.osRelease.id "debian" }}`
+Define a custom `osid` variable in `.chezmoidata` or at the top of a template to simplify things:
 `darwin` / `linux-wsl` / `linux-debian`.
 
 ---
 
-## PHASE 0 — Pré-vol (lecture seule, pas de modif)
-1. Détecter l'OS courant (`uname -a`, lire `/proc/sys/kernel/osrelease` si Linux).
-2. Vérifier présence de : `git`, `curl`, `mise`. Lister ce qui manque SANS installer encore.
-3. Vérifier si chezmoi est déjà initialisé (`~/.local/share/chezmoi`). Si oui, faire un
-   `chezmoi diff` et s'arrêter pour rapport avant toute écriture.
-4. **STOP** — présenter l'état détecté + le plan d'install à l'utilisateur. Attendre go.
+## PHASE 0 — Pre-flight (read-only, no changes)
+1. Detect the current OS (`uname -a`, read `/proc/sys/kernel/osrelease` if Linux).
+2. Check for the presence of: `git`, `curl`, `mise`. List what is missing WITHOUT installing anything yet.
+3. Check whether chezmoi is already initialized (`~/.local/share/chezmoi`). If so, run a
+   `chezmoi diff` and stop to report before any write.
+4. **STOP** — present the detected state + the install plan to the user. Wait for go-ahead.
 
-## PHASE 1 — Bootstrap chezmoi + structure repo
-1. Installer chezmoi si absent (`sh -c "$(curl -fsLS get.chezmoi.io)"`), sinon utiliser l'existant.
-2. `chezmoi init` (créer le repo source si nouveau). Configurer remote GitLab si l'utilisateur
-   fournit l'URL (sinon laisser local, demander l'URL en une seule question).
-3. Créer l'arborescence source state :
+## PHASE 1 — chezmoi bootstrap + repo structure
+1. Install chezmoi if absent (`sh -c "$(curl -fsLS get.chezmoi.io)"`), otherwise use the existing one.
+2. `chezmoi init` (create the source repo if new). Configure the GitLab remote if the user
+   provides the URL (otherwise leave it local, ask for the URL in a single question).
+3. Create the source state tree:
    ```
    ~/.local/share/chezmoi/
-   ├── .chezmoi.toml.tmpl          # config + prompts (nom, email, remote)
-   ├── .chezmoidata.toml           # données partagées (osid dérivé)
-   ├── .chezmoiignore              # ignore par OS (ex: configs Mac sur WSL2)
+   ├── .chezmoi.toml.tmpl          # config + prompts (name, email, remote)
+   ├── .chezmoidata.toml           # shared data (derived osid)
+   ├── .chezmoiignore              # ignore by OS (e.g. Mac configs on WSL2)
    ├── .chezmoiscripts/
    │   ├── run_onchange_before_10-install-tools.sh.tmpl
    │   └── run_onchange_after_20-mise-install.sh.tmpl
-   ├── dot_zshrc.tmpl              # shell : sections ordonnées, templaté OS (Phase 5bis)
+   ├── dot_zshrc.tmpl              # shell: ordered sections, OS-templated (Phase 5bis)
    ├── dot_config/
-   │   ├── starship.toml           # prompt, fichier unique sans variation OS
+   │   ├── starship.toml           # prompt, single file with no OS variation
    │   ├── wezterm/wezterm.lua.tmpl
    │   ├── zellij/config.kdl
    │   ├── zellij/layouts/agent.kdl.tmpl
@@ -57,78 +57,78 @@ Définir une variable custom `osid` dans `.chezmoidata` ou en tête de template 
    │   ├── helix/languages.toml
    │   ├── yazi/                   # keymap + init
    │   └── lazygit/config.yml
-   └── dot_config/mise/config.toml # versions des outils
+   └── dot_config/mise/config.toml # tool versions
    ```
 
-## PHASE 2 — Installation de la toolchain (script chezmoi)
-**Principe de gestion de paquets (arbitrage cyber tranché) : gestionnaire système NATIF par OS
-pour les briques bas niveau, `mise` comme couche cross-OS pour les outils dev.**
-PAS de Homebrew côté WSL2/Linux (couche Ruby + taps tiers = surface d'attaque élargie, et
-Linuxbrew est un citoyen de seconde zone). Homebrew reste uniquement sur macOS, sa plateforme native.
+## PHASE 2 — Toolchain installation (chezmoi script)
+**Package management principle (settled cyber trade-off): NATIVE system manager per OS
+for low-level building blocks, `mise` as the cross-OS layer for dev tools.**
+NO Homebrew on the WSL2/Linux side (Ruby layer + third-party taps = enlarged attack surface, and
+Linuxbrew is a second-class citizen). Homebrew stays only on macOS, its native platform.
 
-Dans `run_onchange_before_10-install-tools.sh.tmpl`, brancher par OS :
-- **darwin** : `brew install wezterm zellij helix yazi lazygit mise zsh` (Apple Silicon, `/opt/homebrew`).
-  Homebrew sur macOS est légitime (déploiement de signatures via Sigstore en cours).
-- **linux-debian / linux-wsl** :
-  1. Briques système via **apt** : `zsh git curl build-essential` (paquets vérifiés par signature
-     GPG des métadonnées de dépôt, modèle de confiance natif Debian).
-  2. Outils dev via **mise** : installer mise d'abord, puis `mise use -g` pour zellij, helix, yazi,
-     lazygit. mise télécharge les binaires officiels des projets → versioning identique entre OS,
-     pas de dépendance Homebrew-Linux, et évite les paquets apt trop vieux pour ces outils récents.
-  3. WezTerm côté **Windows** sous WSL2 (voir Phase 6) — NE PAS l'installer dans WSL.
-- Rendre le script idempotent (tester `command -v` avant chaque install).
-Dans `run_onchange_after_20-mise-install.sh.tmpl` : `mise install` pour matérialiser
-`dot_config/mise/config.toml` (liste partagée entre les deux OS pour tout le dev).
+In `run_onchange_before_10-install-tools.sh.tmpl`, branch by OS:
+- **darwin**: `brew install wezterm zellij helix yazi lazygit mise zsh` (Apple Silicon, `/opt/homebrew`).
+  Homebrew on macOS is legitimate (signature rollout via Sigstore underway).
+- **linux-debian / linux-wsl**:
+  1. System building blocks via **apt**: `zsh git curl build-essential` (packages verified by the
+     GPG signature of the repo metadata, native Debian trust model).
+  2. Dev tools via **mise**: install mise first, then `mise use -g` for zellij, helix, yazi,
+     lazygit. mise downloads the projects' official binaries → identical versioning between OSes,
+     no Homebrew-Linux dependency, and avoids the apt packages that are too old for these recent tools.
+  3. WezTerm on the **Windows** side under WSL2 (see Phase 6) — DO NOT install it inside WSL.
+- Make the script idempotent (test `command -v` before each install).
+In `run_onchange_after_20-mise-install.sh.tmpl`: `mise install` to materialize
+`dot_config/mise/config.toml` (a list shared between the two OSes for all of dev).
 
-**Vérification de provenance mise ACTIVE (ADR-0003, impératif — c'est la vraie surface)** :
-commit `mise.lock` ET `mise settings lockfile=true` ⇒ checksums vérifiés à l'install (un lockfile
-sans vérif active = décoratif). Le gate niveau 1 côté outils teste que la vérif est *on*, pas que
-le fichier existe. Les **LSP** sont des outils mise comme les autres (même cycle), jamais
-`curl|sh` ad hoc.
+**ACTIVE mise provenance verification (ADR-0003, mandatory — this is the real surface)**:
+commit `mise.lock` AND `mise settings lockfile=true` ⇒ checksums verified at install time (a lockfile
+without active verification = decorative). The level-1 gate on the tools side tests that verification is *on*, not that
+the file exists. **LSPs** are mise tools like any other (same cycle), never an ad-hoc
+`curl|sh`.
 
-### Garde-fou sécurité dépôts tiers (Docker, HashiCorp, GitLab…)
-Si un dépôt apt tiers doit être ajouté (ex. pour Terraform via apt plutôt que mise) :
-- **JAMAIS** de clé dans le keyring global (`/etc/apt/trusted.gpg.d/` ou `apt-key`, déprécié
-  depuis Ubuntu 22.04). Une clé globale = racine de confiance pour TOUTES les sources → si la clé
-  privée du tiers fuite, l'attaquant peut contourner la vérification apt.
-- **Pattern correct (2026)** : clé dans un keyring INDIVIDUEL sous `/etc/apt/keyrings/<vendor>.gpg`,
-  référencée via l'option `Signed-By:` dans le fichier `.sources` de cette source uniquement.
-- Préférer `mise` quand l'outil y est dispo : évite d'ajouter un dépôt tiers tout court.
+### Security guardrail for third-party repos (Docker, HashiCorp, GitLab…)
+If a third-party apt repo must be added (e.g. for Terraform via apt rather than mise):
+- **NEVER** a key in the global keyring (`/etc/apt/trusted.gpg.d/` or `apt-key`, deprecated
+  since Ubuntu 22.04). A global key = root of trust for ALL sources → if the third party's
+  private key leaks, the attacker can bypass apt verification.
+- **Correct pattern (2026)**: key in an INDIVIDUAL keyring under `/etc/apt/keyrings/<vendor>.gpg`,
+  referenced via the `Signed-By:` option in the `.sources` file of that source only.
+- Prefer `mise` when the tool is available there: avoids adding a third-party repo at all.
 
-## PHASE 3 — WezTerm (émulateur, template OS)
-`wezterm.lua.tmpl` :
-- Détecter OS via `wezterm.target_triple` côté Lua ET via chezmoi pour les valeurs injectées.
-- Police : Hack Nerd Font (déjà installée). Taille adaptable par OS.
-- **Clipboard** : natif WezTerm (gère OSC52), pas de hack pbcopy/clip.exe nécessaire pour la copie.
-- Lancer Zellij automatiquement : `default_prog` →
-  - darwin : `zellij`
-  - wsl : depuis Windows, `wsl.exe -d <distro> -- zsh -lc zellij` (Phase 6).
-- Thème cohérent avec Helix (ex. Catppuccin). Désactiver la confirmation de fermeture d'onglet.
+## PHASE 3 — WezTerm (emulator, OS template)
+`wezterm.lua.tmpl`:
+- Detect the OS via `wezterm.target_triple` on the Lua side AND via chezmoi for the injected values.
+- Font: Hack Nerd Font (already installed). Size adjustable per OS.
+- **Clipboard**: native WezTerm (handles OSC52), no pbcopy/clip.exe hack needed for copy.
+- Launch Zellij automatically: `default_prog` →
+  - darwin: `zellij`
+  - wsl: from Windows, `wsl.exe -d <distro> -- zsh -lc zellij` (Phase 6).
+- Theme consistent with Helix (e.g. Catppuccin). Disable the tab-close confirmation.
 
-## PHASE 4 — Zellij (multiplexer, cœur multi-agent + binds VS Code-like)
-`config.kdl` :
-- Garder la status bar de hints visible (argument clé du choix Zellij : pas de muscle memory).
-- **Keybinds façon VS Code** (à remapper proprement, sans casser les défauts Zellij) :
-  - Toggle terminal/pane : un bind dédié (équiv. `Ctrl+ù`).
-  - Focus pane éditeur ↔ terminal : navigation Alt+flèches.
-  - Toggle file-tree : ouvrir Yazi en **pane flottant** (équiv. toggle explorateur).
-  - Nouveau pane dans le cwd courant (équiv. "ouvrir terminal ici").
-- `layouts/agent.kdl.tmpl` : layout multi-agent reproduisant cmux :
-  - pane principal : Helix
-  - pane flottant : Yazi (file-tree souris)
-  - pane bas : agent Claude Code
-  - pane latéral optionnel : Lazygit
-  - 1 tab = 1 tâche = 1 worktree = 1 agent.
+## PHASE 4 — Zellij (multiplexer, multi-agent core + VS Code-like binds)
+`config.kdl`:
+- Keep the hints status bar visible (a key argument for choosing Zellij: no muscle memory needed).
+- **VS Code-style keybinds** (to be remapped cleanly, without breaking the Zellij defaults):
+  - Toggle terminal/pane: a dedicated bind (equiv. VS Code's `Ctrl+` backtick).
+  - Focus editor pane ↔ terminal: Alt+arrows navigation.
+  - Toggle file tree: open Yazi in a **floating pane** (equiv. toggle explorer).
+  - New pane in the current cwd (equiv. "open terminal here").
+- `layouts/agent.kdl.tmpl`: multi-agent layout reproducing cmux:
+  - main pane: Helix
+  - floating pane: Yazi (mouse-driven file tree)
+  - bottom pane: Claude Code agent
+  - optional side pane: Lazygit
+  - 1 tab = 1 task = 1 worktree = 1 agent.
 
-## PHASE 5 — Helix + Yazi + Lazygit (éditeur & navigation)
-`helix/config.toml` :
+## PHASE 5 — Helix + Yazi + Lazygit (editor & navigation)
+`helix/config.toml`:
 ```toml
 [editor]
 line-number = "relative"
-mouse = true                 # souris en backup
+mouse = true                 # mouse as backup
 true-color = true
 color-modes = true
-bufferline = "multiple"      # onglets de buffers facon VS Code
+bufferline = "multiple"      # buffer tabs VS Code style
 [editor.file-picker]
 hidden = false
 [editor.cursor-shape]
@@ -138,157 +138,157 @@ select = "underline"
 [editor.auto-save]
 focus-lost = true
 ```
-- `languages.toml` : LSP pour Terraform (terraform-ls), Go (gopls), Python, Bash, YAML, Markdown
-  (cohérent avec le stack IaC de l'utilisateur).
-- **Pont Yazi → Helix** : configurer Yazi pour ouvrir le fichier sélectionné dans l'instance
-  Helix via Zellij (ENTER ouvre dans le pane éditeur). Documenter la limite connue (Yazi démarre
-  dans le cwd de lancement).
-- `lazygit/config.yml` : thème accordé, intégration delta pour les diffs.
+- `languages.toml`: LSP for Terraform (terraform-ls), Go (gopls), Python, Bash, YAML, Markdown
+  (consistent with the user's IaC stack).
+- **Yazi → Helix bridge**: configure Yazi to open the selected file in the Helix
+  instance via Zellij (ENTER opens it in the editor pane). Document the known limit (Yazi starts
+  in the launch cwd).
+- `lazygit/config.yml`: matching theme, delta integration for diffs.
 
-## PHASE 5bis — Shell (Zsh + Starship, migration depuis Oh-My-Zsh)
-> PRÉREQUIS : exécuter d'abord le plan d'audit shell séparé (`PLAN_AUDIT_SHELL.md`) qui produit
-> l'inventaire alias/fonctions/plugins. Intégrer ses résultats ici avant d'écrire le `.zshrc`.
+## PHASE 5bis — Shell (Zsh + Starship, migration from Oh-My-Zsh)
+> PREREQUISITE: first run the separate shell audit plan (`PLAN_AUDIT_SHELL.md`) which produces
+> the alias/function/plugin inventory. Integrate its results here before writing the `.zshrc`.
 
-Couche shell = vit DANS chaque pane Zellij (n'interfère ni avec WezTerm ni Zellij ni Helix).
+The shell layer = lives INSIDE each Zellij pane (does not interfere with WezTerm, Zellij or Helix).
 
-`dot_zshrc.tmpl` structuré en sections ordonnées :
-1. **Exports / PATH** — templaté OS :
-   - darwin : `eval "$(/opt/homebrew/bin/brew shellenv)"`
-   - linux : pas de brew ; PATH mise + ~/.local/bin
-2. **Init outils** : `eval "$(mise activate zsh)"`, complétions.
-3. **Sourcing plugins** (repos indépendants, PAS besoin d'OMZ) — ordre important :
+`dot_zshrc.tmpl` structured into ordered sections:
+1. **Exports / PATH** — OS-templated:
+   - darwin: `eval "$(/opt/homebrew/bin/brew shellenv)"`
+   - linux: no brew; mise PATH + ~/.local/bin
+2. **Tool init**: `eval "$(mise activate zsh)"`, completions.
+3. **Plugin sourcing** (independent repos, NO need for OMZ) — order matters:
    - `zsh-autosuggestions`
-   - `zsh-syntax-highlighting` **toujours en DERNIER** (sinon coloration cassée)
-4. **Prompt** : `eval "$(starship init zsh)"` **en tout dernier** (écrase tout thème résiduel).
-5. **Bloc alias/fonctions custom** : recopié VERBATIM depuis l'audit (section "à moi").
-6. **Alias OMZ regrettés** : uniquement ceux confirmés utilisés par l'audit (croisement historique),
-   redéfinis à la main (ex. ceux du plugin git OMZ : gst/gco/gp… si réellement tapés).
+   - `zsh-syntax-highlighting` **always LAST** (otherwise highlighting breaks)
+4. **Prompt**: `eval "$(starship init zsh)"` **dead last** (overwrites any residual theme).
+5. **Custom alias/function block**: copied VERBATIM from the audit ("mine" section).
+6. **Missed OMZ aliases**: only those confirmed used by the audit (history cross-check),
+   redefined by hand (e.g. those of the OMZ git plugin: gst/gco/gp… if actually typed).
 
-`dot_config/starship.toml` : fichier unique, pas de variation OS. Migrer la config Starship existante.
+`dot_config/starship.toml`: single file, no OS variation. Migrate the existing Starship config.
 
-**Décision DÉJÀ TRANCHÉE par ADR-0003 (ne PAS reposer la question)** : Zsh natif + **plugins
-vendored clonés et épinglés au SHA** (`zsh-plugins.lock`), zéro plugin-manager. OMZ **et** antidote
-sont écartés (MAJ opaque / surface). Toute remise en cause = superseding d'ADR-0003, pas un prompt.
+**Decision ALREADY SETTLED by ADR-0003 (do NOT reopen the question)**: native Zsh + **vendored
+plugins cloned and pinned to a SHA** (`zsh-plugins.lock`), zero plugin manager. OMZ **and** antidote
+are ruled out (opaque updates / surface). Any reconsideration = superseding ADR-0003, not a prompt.
 
-Install en script `run_once_` :
-- cloner `zsh-autosuggestions` et `zsh-syntax-highlighting` aux SHA du lockfile (pas de `git pull`).
-- vérifier le SHA après clone (cf bloc Vérification d'ADR-0003) ; drift → STOP.
-- complétion sur abréviations via quelques `compdef` à la main.
+Install in a `run_once_` script:
+- clone `zsh-autosuggestions` and `zsh-syntax-highlighting` at the lockfile SHAs (no `git pull`).
+- verify the SHA after cloning (cf. the ADR-0003 Verification block); drift → STOP.
+- abbreviation completion via a few hand-written `compdef`s.
 
-**Vérification post-migration (filet de sécurité, dans le script ou en check manuel)** :
+**Post-migration verification (safety net, in the script or as a manual check)**:
 ```sh
-# comparer l'ancien monde OMZ au nouveau
+# compare the old OMZ world to the new one
 diff <(sort ~/omz-snapshot-aliases.txt) <(sort ~/native-aliases.txt)
 ```
-Le diff ne doit plus contenir que des alias OMZ volontairement abandonnés. STOP et rapport sinon.
+The diff should contain only the OMZ aliases deliberately dropped. STOP and report otherwise.
 
-## PHASE 6 — Spécifique WSL2 (le point de portabilité critique)
-- WezTerm tourne **côté Windows** (installé via winget : `winget install wez.wezterm`), pas dans WSL.
-  Il lance le shell WSL → Helix/Zellij s'exécutent dans le Linux. (Remplace Remote-WSL de VS Code.)
-- **Seam explicite (ADR-0008)** : la config WezTerm Windows (`wezterm.lua` côté Windows) est
-  **hors du contexte chezmoi-WSL** (chezmoi ne gère que le `$HOME` Linux). Retenu : config WezTerm
-  Windows **hors-scope chezmoi**, documentée au RUNBOOK ; chezmoi gère WezTerm **macOS** seul ; le
-  `.lua` est factorisé (modèle partagé copié manuellement côté Windows). Ne pas prétendre "config
-  émulateur identique 2 OS".
-- Vérifier l'accès clipboard Windows↔WSL (WezTerm OSC52 gère ; sinon fallback `clip.exe`/`win32yank`).
-- Nerd Font : déjà résolue côté utilisateur (installation cross-WSL/Windows OK).
-- `.chezmoiignore` : ignorer les fichiers Windows-only quand on applique côté Linux, et inversement.
-- Détecter WSL dans les scripts via `.chezmoi.kernel.osrelease | lower | contains "microsoft"`.
+## PHASE 6 — WSL2-specific (the critical portability point)
+- WezTerm runs **on the Windows side** (installed via winget: `winget install wez.wezterm`), not in WSL.
+  It launches the WSL shell → Helix/Zellij run inside the Linux. (Replaces VS Code's Remote-WSL.)
+- **Explicit seam (ADR-0008)**: the Windows WezTerm config (`wezterm.lua` on the Windows side) is
+  **outside the chezmoi-WSL context** (chezmoi only manages the Linux `$HOME`). Decided: the Windows
+  WezTerm config is **out of chezmoi scope**, documented in the RUNBOOK; chezmoi manages WezTerm on
+  **macOS** only; the `.lua` is factored out (a shared template copied manually on the Windows side). Do not
+  claim "identical emulator config across 2 OSes".
+- Verify Windows↔WSL clipboard access (WezTerm OSC52 handles it; otherwise fall back to `clip.exe`/`win32yank`).
+- Nerd Font: already resolved on the user's side (cross-WSL/Windows installation OK).
+- `.chezmoiignore`: ignore Windows-only files when applying on the Linux side, and vice versa.
+- Detect WSL in scripts via `.chezmoi.kernel.osrelease | lower | contains "microsoft"`.
 
-## PHASE 7 — Intégration agents Claude Code (notifications Zellij)
-- Configurer les hooks Claude Code (`~/.claude/settings.json`, lui-même géré par chezmoi en
-  `dot_claude/settings.json.tmpl`) :
-  - `Notification` → `zellij action rename-tab` avec marqueur "ATTEND" (équiv. anneau cmux).
-  - `Stop` → renommer en "FINI".
-- Fournir un script `newagent <tache>` (dans `dot_local/bin/`) : crée un git worktree + une tab
-  Zellij chargée avec `layouts/agent.kdl`, lance `claude`. Et `delagent` pour cleanup
+## PHASE 7 — Claude Code agent integration (Zellij notifications)
+- Configure the Claude Code hooks (`~/.claude/settings.json`, itself managed by chezmoi as
+  `dot_claude/settings.json.tmpl`):
+  - `Notification` → `zellij action rename-tab` with a "WAITING" marker (equiv. the cmux ring).
+  - `Stop` → rename to "DONE".
+- Provide a `newagent <task>` script (in `dot_local/bin/`): creates a git worktree + a Zellij
+  tab loaded with `layouts/agent.kdl`, launches `claude`. And `delagent` for cleanup
   (`git worktree remove`).
 
-## PHASE 7bis — Documentation des décisions (ADR) & modèle de menace
-> Les ADR et le modèle de menace sont FOURNIS (voir dossier `dotfiles/docs/`). Claude Code les
-> copie dans le source state, ne les régénère pas, et les tient à jour si un choix change.
-- Copier `docs/adr/*` (0000→0008 + `_template.md` + `README.md`), `docs/THREAT-MODEL.md` et
-  `docs/RUNBOOK.md` dans le source state chezmoi sous `docs/`.
-- Règle permanente : toute décision technique nouvelle/modifiée ⇒ un ADR (MADR étendu) ou un
-  superseding. Les ADR `security-relevant` référencent les IDs du THREAT-MODEL.
-- Lint ADR (intégré à l'audit) : chaque ADR `security-relevant: true` doit avoir les 4 champs
-  custom non vides (Menaces / Surface résiduelle / Revue / Vérification).
+## PHASE 7bis — Decision documentation (ADR) & threat model
+> The ADRs and the threat model are PROVIDED (see the `dotfiles/docs/` folder). Claude Code
+> copies them into the source state, does not regenerate them, and keeps them up to date if a choice changes.
+- Copy `docs/adr/*` (0000→0008 + `_template.md` + `README.md`), `docs/THREAT-MODEL.md` and
+  `docs/RUNBOOK.md` into the chezmoi source state under `docs/`.
+- Permanent rule: any new/modified technical decision ⇒ an ADR (extended MADR) or a
+  superseding. The `security-relevant` ADRs reference the THREAT-MODEL IDs.
+- ADR lint (integrated into the audit): every `security-relevant: true` ADR must have the 4 custom
+  fields non-empty (Threats / Residual surface / Review / Verification).
 
-## PHASE 7ter — Sécurité par couche (mise en œuvre du rapport cyber)
-> Synthèse actionnable. Pour CHAQUE choix : risques → mitigations (complexité) → reco appliquée.
-> Détail complet et justifications dans les ADR référencés.
+## PHASE 7ter — Per-layer security (implementing the cyber report)
+> Actionable summary. For EACH choice: risks → mitigations (complexity) → applied recommendation.
+> Full detail and justifications in the referenced ADRs.
 
-### Couche 1 — Shell & plugins (ADR-0003 ; menaces T-SC-01..05, T-CR-01)
-- **Risque** : plugin sourcé au démarrage = RCE-by-design ; exfiltration credentials AWS/SSH/TF.
-- **Mitigations** :
-  - Pin SHA + lockfile `zsh-plugins.lock` — complexité FAIBLE — **APPLIQUÉ** (bloque MAJ furtive).
-  - Rituel de bump manuel (diff/soak/tag signé) — complexité MOYENNE — **APPLIQUÉ** (RUNBOOK).
-  - Gates déterministes scriptés (cross-witness) — complexité MOYENNE — **DIFFÉRÉ niveau 2** (ADR-0006).
-  - Signature GPG des tags — complexité FAIBLE — **APPLIQUÉ** (TOFU 1re fois).
-- **Reco contexte** : surface minimale (2 plugins) ; ne jamais réintroduire OMZ/antidote (MAJ opaque).
+### Layer 1 — Shell & plugins (ADR-0003; threats T-SC-01..05, T-CR-01)
+- **Risk**: a plugin sourced at startup = RCE-by-design; exfiltration of AWS/SSH/TF credentials.
+- **Mitigations**:
+  - SHA pin + `zsh-plugins.lock` lockfile — complexity LOW — **APPLIED** (blocks stealth updates).
+  - Manual bump ritual (diff/soak/signed tag) — complexity MEDIUM — **APPLIED** (RUNBOOK).
+  - Scripted deterministic gates (cross-witness) — complexity MEDIUM — **DEFERRED level 2** (ADR-0006).
+  - GPG signature of tags — complexity LOW — **APPLIED** (TOFU first time).
+- **Context recommendation**: minimal surface (2 plugins); never reintroduce OMZ/antidote (opaque updates).
 
-### Couche 2 — Outils & paquets (ADR-0002 routage, ADR-0003 confiance ; menaces T-SC-06..08, T-CR-02)
-- **Risque** : clé apt globale = bypass vérif toutes sources ; binaire mise/LSP altéré ; secret commité.
-- **Mitigations** :
-  - apt natif (Linux) + brew (macOS) + mise (dev+LSP), source unique par outil — FAIBLE — **APPLIQUÉ**.
-  - Keyrings individuels `/etc/apt/keyrings/` + `Signed-By:` — FAIBLE — **APPLIQUÉ** (impératif).
-  - `mise.lock` + `lockfile=true` ⇒ checksums vérifiés à l'install — MOYENNE — **APPLIQUÉ** (T-SC-08 résiduel sur release trojanisée).
-  - gitleaks pre-commit + CI — FAIBLE — **APPLIQUÉ**.
-- **Reco contexte** : LSP = outils mise comme les autres (même cycle ADR-0003) ; trancher doublons → mise unique.
+### Layer 2 — Tools & packages (ADR-0002 routing, ADR-0003 trust; threats T-SC-06..08, T-CR-02)
+- **Risk**: global apt key = verification bypass for all sources; tampered mise/LSP binary; committed secret.
+- **Mitigations**:
+  - native apt (Linux) + brew (macOS) + mise (dev+LSP), single source per tool — LOW — **APPLIED**.
+  - individual keyrings `/etc/apt/keyrings/` + `Signed-By:` — LOW — **APPLIED** (mandatory).
+  - `mise.lock` + `lockfile=true` ⇒ checksums verified at install — MEDIUM — **APPLIED** (T-SC-08 residual on trojanized release).
+  - gitleaks pre-commit + CI — LOW — **APPLIED**.
+- **Context recommendation**: LSP = mise tools like any other (same ADR-0003 cycle); settle duplicates → mise only.
 
-### Couche 3 — Agents IA (ADR-0004 ; menaces T-AG-01..04)
-- **Risque** : prompt injection → exfil ; MCP compromis ; hook eval de sortie LLM ; destruction infra.
-- **Mitigations** :
-  - Permissions Claude Code deny/ask/allow (secrets en deny) — FAIBLE — **APPLIQUÉ**.
-  - Sandbox OS (Seatbelt macOS / bubblewrap+socat Linux) — MOYENNE — **APPLIQUÉ**.
-  - MCP allowlistés + épinglés + revus comme dépendance — MOYENNE — **APPLIQUÉ**.
-  - Hooks à commandes fixes uniquement (jamais d'eval de contenu modèle) — FAIBLE — **APPLIQUÉ**.
-  - Isolation 1 agent = 1 worktree — FAIBLE — **APPLIQUÉ**.
-- **Reco contexte** : revue immédiate à chaque ajout de MCP ; ne jamais activer
-  `--dangerously-skip-permissions` hors conteneur jetable.
+### Layer 3 — AI agents (ADR-0004; threats T-AG-01..04)
+- **Risk**: prompt injection → exfil; compromised MCP; hook eval of LLM output; infra destruction.
+- **Mitigations**:
+  - Claude Code deny/ask/allow permissions (secrets in deny) — LOW — **APPLIED**.
+  - OS sandbox (Seatbelt macOS / bubblewrap+socat Linux) — MEDIUM — **APPLIED**.
+  - MCPs allowlisted + pinned + reviewed like a dependency — MEDIUM — **APPLIED**.
+  - Hooks with fixed commands only (never an eval of model content) — LOW — **APPLIED**.
+  - Isolation 1 agent = 1 worktree — LOW — **APPLIED**.
+- **Context recommendation**: immediate review on every MCP addition; never enable
+  `--dangerously-skip-permissions` outside a disposable container.
 
-## PHASE 7quater — Pipeline d'audit récurrent (ADR-0007) — NIVEAU 2, DIFFÉRÉ
-> **Niveau 1 (socle) = uniquement `gitleaks` pre-commit + CI.** Le pipeline complet ci-dessous
-> (gates scriptés, cross-witness) est la **cible niveau 2**, construite seulement au franchissement
-> du critère ADR-0006. Ne pas le bâtir d'emblée. Même script pre-commit (warn) et CI (bloquant).
-- Créer `audit/run.sh --mode {pre-commit|ci}` qui orchestre :
-  - `audit/scan/` : gitleaks/regex secrets, scan heuristique diff plugins.
-  - `audit/gates/` : SHA==lockfile, soak time, `git tag -v`, cross-witness tree-hash,
-    drift Brewfile/mise, pas de clé apt globale, deny secrets Claude, MCP ∈ allowlist, lint ADR.
-- **pre-commit** (hook chezmoi `run_once_` installe le hook) : checks "cheap", **n'échoue jamais**,
-  imprime des warnings. Contournable par conception (`--no-verify`).
-- **CI** (`.gitlab-ci.yml` dans le repo dotfiles) : audit complet, **échoue** si gate bloquant rouge.
-  Source de vérité : rien sur `main` avec un gate rouge.
-- Matrice complète des checks (pre-commit vs CI, warn vs bloquant) : voir ADR-0007.
-- À chaque exécution : évaluer le **critère de bascule Nix** (ADR-0006, compteur de conditions ≥ 2).
+## PHASE 7quater — Recurring audit pipeline (ADR-0007) — LEVEL 2, DEFERRED
+> **Level 1 (baseline) = only `gitleaks` pre-commit + CI.** The full pipeline below
+> (scripted gates, cross-witness) is the **level-2 target**, built only upon crossing
+> the ADR-0006 criterion. Do not build it up front. Same script pre-commit (warn) and CI (blocking).
+- Create `audit/run.sh --mode {pre-commit|ci}` which orchestrates:
+  - `audit/scan/`: gitleaks/regex secrets, heuristic scan of plugin diffs.
+  - `audit/gates/`: SHA==lockfile, soak time, `git tag -v`, cross-witness tree-hash,
+    Brewfile/mise drift, no global apt key, Claude deny secrets, MCP ∈ allowlist, ADR lint.
+- **pre-commit** (chezmoi `run_once_` hook installs the hook): "cheap" checks, **never fails**,
+  prints warnings. Bypassable by design (`--no-verify`).
+- **CI** (`.gitlab-ci.yml` in the dotfiles repo): full audit, **fails** if a blocking gate is red.
+  Source of truth: nothing on `main` with a red gate.
+- Full matrix of checks (pre-commit vs CI, warn vs blocking): see ADR-0007.
+- On each run: evaluate the **Nix switch-over criterion** (ADR-0006, counter of conditions ≥ 2).
 
-## PHASE 8 — Vérification & commit
-1. `chezmoi diff` puis `chezmoi apply` (en plan : montrer le diff avant apply).
-2. Test à blanc : lancer WezTerm → Zellij → layout agent → ouvrir Helix + Yazi + Lazygit.
-2bis. **Smoke-test machine neuve scriptable** : un `doctor.sh` vérifie binaires présents, SHA
-   plugins == lockfile, vérif provenance mise active, sandbox agent qui tourne réellement
-   (ADR-0004), deny secrets Claude présents. C'est le filet "ça marche vraiment", pas l'œil.
-   Détail `doctor.sh` : RUNBOOK.
-2ter. **Rollback documenté (ADR-0006)** : RUNBOOK couvre `git revert` du source state + apply, et le
-   cas apply cassé à mi-course (scripts idempotents, snapshot conf critiques avant bump).
-3. Niveau 1 : `gitleaks` + checks cheap. (CI complète / gates scriptés = niveau 2 différé, ADR-0003/0007.)
-4. Vérifier que les binds VS Code-like répondent.
-5. `chezmoi cd && git add -A && git commit` — **STOP avant push** (push en `ask`, validation humaine).
-   Forge = GitLab, modèle MR + CI avec porte de sortie trunk (ADR-0007).
-6. Produire un README dans le repo : commande d'install one-liner pour une nouvelle machine
-   (`sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply <user>/<repo>`), et la liste des binds.
-7. Le `docs/adr/` et `docs/THREAT-MODEL.md` sont versionnés dans le repo (déjà fournis).
+## PHASE 8 — Verification & commit
+1. `chezmoi diff` then `chezmoi apply` (in plan mode: show the diff before apply).
+2. Dry run: launch WezTerm → Zellij → agent layout → open Helix + Yazi + Lazygit.
+2bis. **Scriptable fresh-machine smoke test**: a `doctor.sh` checks that binaries are present, plugin
+   SHAs == lockfile, mise provenance verification is active, the agent sandbox actually runs
+   (ADR-0004), Claude deny secrets are present. It is the "it really works" net, not the eyeball.
+   `doctor.sh` detail: RUNBOOK.
+2ter. **Documented rollback (ADR-0006)**: the RUNBOOK covers `git revert` of the source state + apply, and the
+   case of an apply broken mid-course (idempotent scripts, snapshot of critical configs before a bump).
+3. Level 1: `gitleaks` + cheap checks. (Full CI / scripted gates = deferred level 2, ADR-0003/0007.)
+4. Verify that the VS Code-like binds respond.
+5. `chezmoi cd && git add -A && git commit` — **STOP before push** (push set to `ask`, human approval).
+   Forge = GitLab, MR + CI model with a trunk exit gate (ADR-0007).
+6. Produce a README in the repo: one-liner install command for a new machine
+   (`sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply <user>/<repo>`), and the list of binds.
+7. The `docs/adr/` and `docs/THREAT-MODEL.md` are versioned in the repo (already provided).
 
 ---
 
-## Garde-fous pour Claude Code
-- Tout fichier ciblant `~` doit être créé/édité **dans le source state chezmoi**, jamais en direct.
-- Avant tout `apply`, montrer `chezmoi diff`. Ne pas appliquer sans validation en plan mode.
-- `git push` et toute commande réseau d'install : en mode `ask`.
-- Idempotence obligatoire : chaque script teste l'existant avant d'agir.
-- Si un binaire n'est pas dispo sur un OS (ex. WezTerm dans WSL), ne pas l'installer côté Linux ;
-  documenter la procédure Windows à la place.
-- **Secrets & creds (ADR-0005)** : secrets statiques via **Bitwarden CLI** (templates `*.tmpl`
-  `{{ (bitwarden ...) }}`, rendus au `apply`, jamais committés, IDs-only dans git) ; **accès AWS via
-  SSO/granted, zéro clé statique**. Bootstrap : `bw unlock` AVANT le 1er apply (ordre cold-start :
-  RUNBOOK). Ne JAMAIS committer un secret en clair.
+## Guardrails for Claude Code
+- Any file targeting `~` must be created/edited **in the chezmoi source state**, never directly.
+- Before any `apply`, show `chezmoi diff`. Do not apply without approval in plan mode.
+- `git push` and any network install command: in `ask` mode.
+- Idempotence mandatory: each script tests the existing state before acting.
+- If a binary is not available on an OS (e.g. WezTerm in WSL), do not install it on the Linux side;
+  document the Windows procedure instead.
+- **Secrets & creds (ADR-0005)**: static secrets via **Bitwarden CLI** (`*.tmpl` templates
+  `{{ (bitwarden ...) }}`, rendered at `apply`, never committed, IDs-only in git); **AWS access via
+  SSO/granted, zero static key**. Bootstrap: `bw unlock` BEFORE the first apply (cold-start order:
+  RUNBOOK). NEVER commit a cleartext secret.

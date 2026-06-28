@@ -3,89 +3,92 @@ status: accepted
 date: 2026-06-28
 decision-makers: [Baptiste]
 security-relevant: true
-review-by: trigger:changement-doctrine
+review-by: trigger:doctrine-change
 supersedes: []
 ---
 
-# ADR-0002 — Doctrine d'outillage & paquets (où va quoi, inventaire)
+# ADR-0002 — Tooling & packages doctrine (where things go, inventory)
 
-> ADR **doctrine** : ne trace PAS la liste des outils (état mouvant, cf ADR-0000), mais les **règles
-> durables** qui décident *quel gestionnaire installe quoi* et *ce qui est réinstallé sur une machine
-> neuve*. La confiance/provenance des dépendances (pin, lock, soak) relève d'ADR-0003 ; cet ADR ne
-> traite que le routage et l'inventaire. La liste vit dans les fichiers de conf versionnés
+> **Doctrine** ADR: it does NOT record the list of tools (moving state, cf ADR-0000), but the
+> **durable rules** that decide *which manager installs what* and *what gets reinstalled on a
+> fresh machine*. The trust/provenance of dependencies (pin, lock, soak) belongs to ADR-0003;
+> this ADR only covers routing and inventory. The list lives in the versioned config files
 > (`Brewfile.tmpl`, `mise.toml`, `zsh-plugins.lock`).
 
-## Contexte et énoncé du problème
-Sans règle stable, l'inventaire dérive : essais ponctuels réinstallés "par défaut", même outil en
-double via deux gestionnaires, dépendances exécutées au démarrage ajoutées sans contrôle. Il faut
-une doctrine qui survive aux changements de liste, sur macOS + WSL2/Debian.
+## Context and problem statement
+Without a stable rule, the inventory drifts: one-off trials reinstalled "by default", the same
+tool duplicated across two managers, dependencies executed at startup added without control. We
+need a doctrine that survives changes to the list, on macOS + WSL2/Debian.
 
-## Drivers de décision
-- Surface d'attaque minimale et propreté de l'inventaire.
-- Source unique par outil (pas de doublon entre gestionnaires).
-- Versioning cross-OS aligné pour les runtimes.
-- Séparer "décision durable" (cet ADR) de "liste" (fichiers de conf).
+## Decision drivers
+- Minimal attack surface and a clean inventory.
+- Single source per tool (no duplicate across managers).
+- Aligned cross-OS versioning for runtimes.
+- Separate "durable decision" (this ADR) from "list" (config files).
 
-## Décision : doctrine
+## Decision: doctrine
 
-1. **Source unique par outil.** Un outil = un seul gestionnaire, jamais deux. Runtimes pinnables
-   par projet → **mise** ; briques système → gestionnaire natif de l'OS (**apt** sur Linux,
-   **brew** sur macOS, casks compris pour les apps GUI).
+1. **Single source per tool.** A tool = a single manager, never two. Per-project pinnable runtimes
+   → **mise**; system building blocks → the OS's native manager (**apt** on Linux, **brew** on
+   macOS, including casks for GUI apps).
 
-2. **Routage d'un nouvel outil :**
-   - Runtime/outil dev pinnable (y compris serveurs LSP) → **mise** + entrée `mise.lock`.
-   - Outil système Linux → **apt** ; dépôt tiers seulement si nécessaire, alors **keyring
-     individuel + `Signed-By:`** (jamais de clé globale, cf garde-fou ci-dessous).
-   - Outil / app macOS → **brew** (formule ou cask), déclaré dans `Brewfile.tmpl`.
+2. **Routing a new tool:**
+   - Pinnable dev runtime/tool (including LSP servers) → **mise** + a `mise.lock` entry.
+   - Linux system tool → **apt**; third-party repo only if necessary, and then an **individual
+     keyring + `Signed-By:`** (never a global key, cf safeguard below).
+   - macOS tool / app → **brew** (formula or cask), declared in `Brewfile.tmpl`.
 
-3. **Inventaire intentionnel.** Sont déclarés (donc réinstallés auto sur machine neuve) les outils
-   à usage **récurrent** (cœur quotidien, infra, CI/lint réellement utilisés). Les outils **essayés
-   ponctuellement** ne sont PAS déclarés : installables à la demande. Objectif : pas un cimetière
-   d'essais.
+3. **Intentional inventory.** The tools that are declared (and therefore auto-reinstalled on a
+   fresh machine) are those of **recurring** use (daily core, infra, CI/lint actually used).
+   Tools **tried occasionally** are NOT declared: installable on demand. Goal: not a graveyard
+   of trials.
 
-4. **Outils passifs** (prompt, complétions, libs, deps de build) : jugés **par rôle, pas par
-   compteur d'usage** ; pas supprimés sur le seul critère d'un faible nombre d'occurrences.
+4. **Passive tools** (prompt, completions, libs, build deps): judged **by role, not by usage
+   count**; not removed solely on the criterion of a low number of occurrences.
 
-5. **Frontière sécu shell.** Toute dépendance **exécutée au démarrage du shell** (plugin, hook)
-   relève d'ADR-0003 (confiance/pin/soak), pas de cette doctrine. Idem provenance des binaires.
+5. **Shell security boundary.** Any dependency **executed at shell startup** (plugin, hook)
+   belongs to ADR-0003 (trust/pin/soak), not to this doctrine. Likewise for the provenance of
+   binaries.
 
-6. **GUI hors périmètre shell** : non couvertes côté shell ; celles exposant un CLI déjà dans le
-   PATH n'ont rien à porter.
+6. **GUIs outside the shell scope**: not covered on the shell side; those exposing a CLI already
+   on the PATH have nothing to carry.
 
-### Garde-fou dépôts tiers apt (impératif)
-Un dépôt tiers ajoute sa clé en **keyring individuel** `/etc/apt/keyrings/<vendor>.gpg` + `Signed-By:`
-dans le `.sources`. **Jamais** `apt-key` ni `/etc/apt/trusted.gpg.d/` global (obsolète depuis Ubuntu
-22.04, casse l'isolation : une clé tierce signerait pour tout le système).
+### Third-party apt repository safeguard (mandatory)
+A third-party repo adds its key as an **individual keyring** `/etc/apt/keyrings/<vendor>.gpg` +
+`Signed-By:` in the `.sources`. **Never** `apt-key` nor the global `/etc/apt/trusted.gpg.d/`
+(deprecated since Ubuntu 22.04, breaks isolation: a third-party key would sign for the whole
+system).
 
-## Conséquences
-- Bonnes : doctrine stable qui ne se périme pas quand la liste change ; inventaire minimal ;
-  doublons exclus par construction ; frontière nette avec la sécurité des dépendances (ADR-0003).
-- Mauvaises : un outil "à la demande" devra être réinstallé quand re-nécessaire (coût mineur assumé).
+## Consequences
+- Good: a stable doctrine that does not expire when the list changes; minimal inventory;
+  duplicates excluded by construction; a clean boundary with dependency security (ADR-0003).
+- Bad: an "on demand" tool will have to be reinstalled when needed again (minor accepted cost).
 
-## Menaces adressées
-- **T-SC-06** (bypass vérif apt via clé globale) : keyring individuel + `Signed-By:`.
-- **T-SC-07** (paquet obsolète à CVE) : source à jour par gestionnaire natif, inventaire revu.
+## Threats addressed
+- **T-SC-06** (bypass of apt verification via a global key): individual keyring + `Signed-By:`.
+- **T-SC-07** (outdated package with a CVE): up-to-date source via the native manager, reviewed
+  inventory.
 
-## Surface d'attaque résiduelle
-- La *confiance* dans les binaires installés (provenance, altération au téléchargement) n'est PAS
-  traitée ici → ADR-0003.
+## Residual attack surface
+- The *trust* in the installed binaries (provenance, tampering on download) is NOT handled here
+  → ADR-0003.
 
-## Revue / expiration
-`trigger:changement-doctrine` — revoir seulement si la doctrine évolue (3e gestionnaire, bascule
-Nix). La modification de la *liste* d'outils ne déclenche PAS de revue.
+## Review / expiry
+`trigger:doctrine-change` — review only if the doctrine evolves (a 3rd manager, a switch to Nix).
+Changing the tool *list* does NOT trigger a review.
 
-## Fichiers d'état régis (hors ADR)
-- `Brewfile.tmpl` — inventaire macOS. `mise.toml` — runtimes + LSP + versions.
-- `zsh-plugins.lock` — plugins (confiance régie par ADR-0003).
+## Governed state files (outside ADR)
+- `Brewfile.tmpl` — macOS inventory. `mise.toml` — runtimes + LSP + versions.
+- `zsh-plugins.lock` — plugins (trust governed by ADR-0003).
 
-## Vérification
+## Verification
 ```sh
-# garde-fou apt (Linux) : dépôts tiers en keyring individuel + Signed-By, jamais de clé globale
+# apt safeguard (Linux): third-party repos in an individual keyring + Signed-By, never a global key
 if [ -d /etc/apt ]; then
-  test -d /etc/apt/keyrings && echo "OK: keyrings individuels" || echo "VERIFIER: /etc/apt/keyrings absent"
+  test -d /etc/apt/keyrings && echo "OK: individual keyrings" || echo "CHECK: /etc/apt/keyrings missing"
   ! ls /etc/apt/trusted.gpg.d/*.asc /etc/apt/trusted.gpg.d/*.gpg >/dev/null 2>&1 \
-    && echo "OK: pas de clé tierce globale" || echo "VERIFIER: clé en trusted.gpg.d global"
+    && echo "OK: no global third-party key" || echo "CHECK: key in global trusted.gpg.d"
 else
-  echo "macOS: apt N/A (routage brew, cf doctrine)"
+  echo "macOS: apt N/A (brew routing, cf doctrine)"
 fi
 ```

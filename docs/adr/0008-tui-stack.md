@@ -3,62 +3,62 @@ status: accepted
 date: 2026-06-28
 decision-makers: [Baptiste]
 security-relevant: false
-review-by: trigger:changement-majeur-stack
+review-by: trigger:major-stack-change
 supersedes: []
 ---
 
-# ADR-0008 — Stack TUI : WezTerm + Zellij + Helix + Yazi + Lazygit [groupé]
+# ADR-0008 — TUI stack: WezTerm + Zellij + Helix + Yazi + Lazygit [grouped]
 
-> ADR **groupé** : ces cinq outils forment une seule décision cohérente (remplacer VS Code + cmux
-> par une pile terminal native portable). Le "pourquoi" est partagé ; on les trace ensemble.
+> **Grouped** ADR: these five tools form a single coherent decision (replace VS Code + cmux
+> with a portable native terminal stack). The "why" is shared; we trace them together.
 
-## Contexte
-Remplacer VS Code + cmux par une stack terminal native, identique macOS/WSL2, navigable au clavier,
-légère, souris en backup, capable d'orchestrer plusieurs agents IA. Couches : émulateur,
-multiplexer, éditeur, file-tree, diff git.
+## Context
+Replace VS Code + cmux with a native terminal stack, identical on macOS/WSL2, keyboard-navigable,
+lightweight, mouse as backup, able to orchestrate multiple AI agents. Layers: emulator,
+multiplexer, editor, file-tree, git diff.
 
-## Drivers de décision
-- Navigation clavier simple + souris possible.
-- Léger, portable cross-OS, formats ouverts (anti vendor-lock-in).
-- Multi-agent (remplacer cmux) + intégration hooks Claude Code.
+## Decision drivers
+- Simple keyboard navigation + mouse possible.
+- Lightweight, cross-OS portable, open formats (anti vendor lock-in).
+- Multi-agent (replace cmux) + Claude Code hooks integration.
 
-## Décision (par couche)
-| Couche | Outil retenu | Alternative écartée | Raison |
+## Decision (by layer)
+| Layer | Tool chosen | Alternative rejected | Reason |
 |---|---|---|---|
-| Émulateur GPU | **WezTerm** | iTerm2/Alacritty | config Lua unique cross-OS, détection target, lance Zellij ; sous WSL2 tourne côté **Windows** (remplace Remote-WSL) — *seam* ci-dessous |
-| Multiplexer | **Zellij** | tmux | hints visibles (pas de muscle memory), panes flottants natifs (file-tree), config KDL déclarative ; tmux gardé pour SSH/remote |
-| Éditeur | **Helix** *(sous validation, cf infra)* | Neovim / Zed | clavier simple (selection→action), léger, souris par défaut, LSP intégré sans config Lua lourde ; Zed = pas multiplexer + WSL2 imparfait |
-| File-tree | **Yazi** (pane flottant) | nnn/ranger | comble l'absence de file-tree Helix, ouvre dans l'instance éditeur |
-| Diff git | **Lazygit** | tig/gitui | diff visuel + intégration delta |
+| GPU emulator | **WezTerm** | iTerm2/Alacritty | single cross-OS Lua config, target detection, launches Zellij; under WSL2 runs on the **Windows** side (replaces Remote-WSL) — *seam* below |
+| Multiplexer | **Zellij** | tmux | visible hints (no muscle memory), native floating panes (file-tree), declarative KDL config; tmux kept for SSH/remote |
+| Editor | **Helix** *(under validation, see below)* | Neovim / Zed | simple keyboard model (selection→action), lightweight, mouse by default, integrated LSP without heavy Lua config; Zed = no multiplexer + imperfect WSL2 |
+| File-tree | **Yazi** (floating pane) | nnn/ranger | fills Helix's lack of a file-tree, opens in the editor instance |
+| Git diff | **Lazygit** | tig/gitui | visual diff + delta integration |
 
-## Validation Helix (le plus gros risque fonctionnel — remplacer VS Code pour charge IaC/Python)
-Helix est **cible**, pas acquis : adoption confirmée seulement après un **timebox sur une vraie
-tâche** Crossplane/Terraform/Python (2-3 semaines), VS Code gardé en parallèle pendant l'essai.
-**Critère de retour** (rollback documenté vers VS Code/hybride, sans superseding) si l'un est vrai :
-- édition IaC/Python significativement ralentie vs VS Code au quotidien ;
-- LSP/refactor/diagnostics Crossplane/YAML insuffisants pour le travail réel ;
-- absence de debugger (DAP) bloquante pour Python.
-Décision finale tracée (amendement de cet ADR) après l'essai, pas sur papier.
+## Helix validation (the biggest functional risk — replacing VS Code for IaC/Python load)
+Helix is a **target**, not a given: adoption is only confirmed after a **timebox on a real
+task** in Crossplane/Terraform/Python (2-3 weeks), with VS Code kept in parallel during the trial.
+**Rollback criterion** (documented rollback to VS Code/hybrid, without superseding) if any is true:
+- IaC/Python editing significantly slower than VS Code day to day;
+- Crossplane/YAML LSP/refactor/diagnostics insufficient for real work;
+- absence of a debugger (DAP) blocking for Python.
+The final decision is traced (an amendment to this ADR) after the trial, not on paper.
 
-## Seam WezTerm / Windows (portabilité critique WSL2)
-Côté WSL2, WezTerm tourne **sur Windows**, hors du `$HOME` Linux géré par chezmoi : sa config
-(`wezterm.lua` Windows) est **hors du contexte chezmoi-WSL**. Décision pour ne pas prétendre
-faussement "config identique 2 OS" côté émulateur :
-- **Retenu** : config WezTerm Windows **hors-scope chezmoi-WSL**, documentée au RUNBOOK
-  (`winget install wez.wezterm` + dépôt du `.lua` Windows) ; chezmoi gère WezTerm **macOS** seul ;
-  le `.lua` est factorisé (modèle partagé copié manuellement côté Windows).
-- **Écarté** : 2e contexte chezmoi Windows (double la machinerie pour un fichier ; coût > bénéfice).
-WezTerm n'est **jamais** installé dans WSL.
+## WezTerm / Windows seam (critical WSL2 portability)
+On the WSL2 side, WezTerm runs **on Windows**, outside the Linux `$HOME` managed by chezmoi: its config
+(`wezterm.lua` on Windows) is **outside the chezmoi-WSL context**. Decision so as not to falsely
+claim "identical config across 2 OSes" on the emulator side:
+- **Chosen**: WezTerm Windows config **out of scope for chezmoi-WSL**, documented in the RUNBOOK
+  (`winget install wez.wezterm` + storing the Windows `.lua`); chezmoi manages WezTerm **macOS** only;
+  the `.lua` is factored out (a shared template copied manually to the Windows side).
+- **Rejected**: a 2nd Windows chezmoi context (doubles the machinery for one file; cost > benefit).
+WezTerm is **never** installed inside WSL.
 
-## Conséquences
-- Bonnes : pile cohérente, portable, légère, multi-agent ; même config sur 2 OS via chezmoi.
-- Mauvaises : perte du navigateur scriptable de cmux (remplacé par `glab mr`/`glab ci` — forge
-  GitLab, ADR-0007) et des notifications natives macOS/iOS (→ hooks rename-tab Zellij). Helix sans
-  file-tree natif (workaround Yazi). Risque productivité éditeur couvert par le timebox. Accepté.
+## Consequences
+- Good: a coherent, portable, lightweight, multi-agent stack; the same config on 2 OSes via chezmoi.
+- Bad: loss of cmux's scriptable browser (replaced by `glab mr`/`glab ci` — the GitLab
+  forge, ADR-0007) and of native macOS/iOS notifications (→ Zellij rename-tab hooks). Helix without
+  a native file-tree (Yazi workaround). Editor productivity risk covered by the timebox. Accepted.
 
-## Revue / expiration
-Revoir si un de ces outils change de modèle majeur (ex. Helix plugin system stable, ou Zed corrige
+## Review / expiry
+Review if one of these tools changes its major model (e.g. Helix plugin system stable, or Zed fixes
 WSL2 + multiplexing).
 
-## Détail vivant (hors ADR)
-Configs et binds : cf RUNBOOK § Stack TUI.
+## Living detail (outside the ADR)
+Configs and binds: see RUNBOOK § TUI Stack.

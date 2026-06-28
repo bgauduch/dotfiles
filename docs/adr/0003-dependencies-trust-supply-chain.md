@@ -7,70 +7,72 @@ review-by: 2027-06-28
 supersedes: []
 ---
 
-# ADR-0003 — Confiance & supply-chain des dépendances externes
+# ADR-0003 — Trust & supply-chain of external dependencies
 
-> Doctrine **transverse** : un seul cycle de confiance pour TOUTE dépendance externe (plugin shell,
-> outil/LSP via mise, serveur MCP, paquet à provenance vérifiable). Évite la duplication d'un
-> "rituel de pin/soak" éparpillé par sujet. Le *routage* (quel gestionnaire) est dans ADR-0002 ;
-> les *étapes opératoires* du bump sont dans le RUNBOOK. Ici : le principe et les niveaux.
+> **Cross-cutting** doctrine: a single trust cycle for EVERY external dependency (shell plugin,
+> tool/LSP via mise, MCP server, package with verifiable provenance). Avoids duplicating a
+> "pin/soak ritual" scattered per topic. The *routing* (which manager) is in ADR-0002; the
+> *operational steps* of a bump are in the RUNBOOK. Here: the principle and the levels.
 
-## Contexte et énoncé du problème
-Profil ciblé par les campagnes supply-chain 2026 (axios/node-ipc/Shai-Hulud) : un poste freelance
-Cloud/IaC détenant credentials AWS/SSH/tfstate. Le vecteur le plus probable est une **dépendance
-compromise en amont** (plugin shell sourcé au démarrage, binaire/LSP installé par mise, serveur
-MCP). Il faut une règle unique : qu'est-ce qui établit la confiance avant d'exécuter du code tiers.
+## Context and problem statement
+A profile targeted by the 2026 supply-chain campaigns (axios/node-ipc/Shai-Hulud): a freelance
+Cloud/IaC workstation holding AWS/SSH/tfstate credentials. The most likely vector is a
+**dependency compromised upstream** (shell plugin sourced at startup, binary/LSP installed by
+mise, MCP server). We need a single rule: what establishes trust before executing third-party
+code.
 
-## Drivers de décision
-- Sécurité supply-chain proportionnée, sans réinventer Nix (cf ADR-0006).
-- Effort aligné sur la surface réelle : les binaires/LSP via mise sont **plus** exposés que les 2
-  plugins zsh (pattern campagnes = artefacts de release compromis). Ne pas sur-blinder les plugins
-  en sous-traitant les binaires.
-- Portabilité macOS/WSL2, réversibilité (montée en exigence possible).
+## Decision drivers
+- Proportionate supply-chain security, without reinventing Nix (cf ADR-0006).
+- Effort aligned with the real surface: binaries/LSP via mise are **more** exposed than the 2
+  zsh plugins (campaign pattern = compromised release artifacts). Do not over-armor the plugins
+  while subcontracting the binaries.
+- macOS/WSL2 portability, reversibility (a step up in requirements is possible).
 
-## Décision : cycle de confiance unique
-Toute dépendance externe suit : **déclarer → épingler/lock → vérifier la provenance → soak avant
-d'adopter un bump**. Application par classe :
+## Decision: single trust cycle
+Every external dependency follows: **declare → pin/lock → verify provenance → soak before
+adopting a bump**. Application per class:
 
-| Classe | Pin / lock | Provenance | Particularité |
+| Class | Pin / lock | Provenance | Particularity |
 |---|---|---|---|
-| Plugins zsh (vendored) | clone + **SHA** épinglé dans `zsh-plugins.lock` | revue de diff au bump + signature si dispo | sourcés au démarrage = risque le plus direct (T-CR-01) ; pas de plugin-manager (OMZ/antidote écartés, cf Décision) |
-| Outils & **LSP** via mise | `mise.lock` (versions + **checksums** + URLs) | `mise settings lockfile=true` ⇒ checksums **vérifiés à l'install** pour les backends supportés ; cosign/SLSA si l'upstream publie | un lockfile sans vérif active = décoratif ; LSP = outil mise comme un autre |
-| Serveurs MCP | version du serveur épinglée (ADR-0004) | revue à l'ajout/MAJ | arbre de deps transitif (npm/pip) non épinglé = résiduel |
-| Paquets apt (dépôt tiers) | version gérée par apt | signature via keyring `Signed-By:` (ADR-0002) | — |
+| zsh plugins (vendored) | clone + **SHA** pinned in `zsh-plugins.lock` | diff review at bump + signature if available | sourced at startup = the most direct risk (T-CR-01); no plugin manager (OMZ/antidote ruled out, cf Decision) |
+| Tools & **LSP** via mise | `mise.lock` (versions + **checksums** + URLs) | `mise settings lockfile=true` ⇒ checksums **verified at install** for supported backends; cosign/SLSA if upstream publishes | a lockfile without active verification is decorative; an LSP = a mise tool like any other |
+| MCP servers | server version pinned (ADR-0004) | review at add/update | transitive dependency tree (npm/pip) not pinned = residual |
+| apt packages (third-party repo) | version managed by apt | signature via `Signed-By:` keyring (ADR-0002) | — |
 
-**Soak time** : ne pas épingler une release fraîche immédiatement ; laisser passer un délai
-d'attente (≈ celui d'une fenêtre d'alerte amont) avant d'adopter un bump. Étapes : RUNBOOK.
+**Soak time**: do not pin a fresh release immediately; let a waiting period pass (≈ that of an
+upstream alert window) before adopting a bump. Steps: RUNBOOK.
 
-### Niveau 2 (différé) — gates scriptés
-Les gates *automatisés* (cross-witness tree-hash contre nixpkgs/brew/Debian, scan heuristique
-scripté, lint) sont la **cible niveau 2** (ADR-0006), **non construits** tant que le critère de
-bascule n'est pas atteint. On garde la décision et le déclencheur, pas une machinerie qui rote.
-Au niveau 1 : pin + lock + revue manuelle au bump + `gitleaks` (ADR-0007).
+### Level 2 (deferred) — scripted gates
+The *automated* gates (cross-witness tree-hash against nixpkgs/brew/Debian, scripted heuristic
+scan, lint) are the **level-2 target** (ADR-0006), **not built** as long as the switchover
+criterion is not met. We keep the decision and the trigger, not a piece of machinery that rots.
+At level 1: pin + lock + manual review at bump + `gitleaks` (ADR-0007).
 
-## Conséquences
-- Bonnes : une seule source de vérité du cycle de confiance ; effort réaligné sur la vraie surface ;
-  pas de duplication ; chemin niveau 2 tracé et déclenché par un fait, pas une envie.
-- Mauvaises : la revue de diff au bump reste **manuelle** au niveau 1 (faillible) ; assumé tant que
-  le nombre de dépendances reste faible (critère de bascule ADR-0006).
+## Consequences
+- Good: a single source of truth for the trust cycle; effort realigned to the real surface; no
+  duplication; the level-2 path is tracked and triggered by a fact, not a whim.
+- Bad: the diff review at bump remains **manual** at level 1 (fallible); accepted as long as the
+  number of dependencies stays low (switchover criterion ADR-0006).
 
-## Menaces adressées
-- **T-SC-01** (plugin compromis en amont), **T-SC-02/03** (release/ mainteneur compromis),
-  **T-SC-04** (dep non validée/dormante), **T-SC-05** (build trojanisé à provenance valide),
-  **T-CR-01** (exfil credentials via hook plugin), **T-SC-08** (binaire mise/LSP altéré au DL).
+## Threats addressed
+- **T-SC-01** (plugin compromised upstream), **T-SC-02/03** (compromised release/maintainer),
+  **T-SC-04** (unvalidated/dormant dependency), **T-SC-05** (trojanized build with valid
+  provenance), **T-CR-01** (credential exfil via a plugin hook), **T-SC-08** (mise/LSP binary
+  tampered with on download).
 
-## Surface d'attaque résiduelle
-- **T-SC-05** (provenance valide mais malveillante) : aucun pin ne prouve l'innocuité ; défense en
-  profondeur (pin + soak + sandbox agents ADR-0004), pas une garantie.
-- Deps **transitives** des serveurs MCP et des binaires mise non épinglées byte-for-byte (→ Nix,
-  ADR-0006 niveau 3).
-- Revue de bump manuelle : un payload obfusqué peut passer (limite assumée du niveau 1).
+## Residual attack surface
+- **T-SC-05** (valid but malicious provenance): no pin proves harmlessness; defense in depth
+  (pin + soak + agent sandboxing ADR-0004), not a guarantee.
+- **Transitive** dependencies of MCP servers and mise binaries not pinned byte-for-byte (→ Nix,
+  ADR-0006 level 3).
+- Manual bump review: an obfuscated payload can slip through (accepted limit of level 1).
 
-## Revue / expiration
-Revue annuelle, ou immédiate à l'ajout d'une classe de dépendance ou au franchissement du critère
-de bascule niveau 2 (ADR-0006).
+## Review / expiry
+Annual review, or immediate upon adding a dependency class or crossing the level-2 switchover
+criterion (ADR-0006).
 
-## Vérification
+## Verification
 ```sh
-test -f zsh-plugins.lock && test -f mise.lock && echo "locks OK" || echo "lockfile manquant"
-mise settings 2>/dev/null | grep -q 'lockfile = true' && echo "vérif mise active" || echo "ACTIVER lockfile"
+test -f zsh-plugins.lock && test -f mise.lock && echo "locks OK" || echo "missing lockfile"
+mise settings 2>/dev/null | grep -q 'lockfile = true' && echo "mise verification active" || echo "ENABLE lockfile"
 ```

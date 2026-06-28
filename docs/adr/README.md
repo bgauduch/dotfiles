@@ -1,31 +1,32 @@
 # Architecture Decision Records (ADR)
 
-Décisions structurantes de l'environnement de développement portable (chezmoi + shell + outils +
-agents IA). Format : **MADR étendu** (4 champs sécu custom), défini dans
-[ADR-0000](0000-adr-process-and-repo-conventions.md). Gabarit : [`_template.md`](_template.md).
+Structural decisions for the portable development environment (chezmoi + shell + tools +
+AI agents). Format: **extended MADR** (4 custom security fields), defined in
+[ADR-0000](0000-adr-process-and-repo-conventions.md). Template: [`_template.md`](_template.md).
 
-Toute décision technique nouvelle ou modifiée ⇒ un ADR (ou un superseding). Les ADR
-`security-relevant` référencent [`THREAT-MODEL.md`](../THREAT-MODEL.md). Le **comment** (procédures,
-commandes, étapes) vit dans [`RUNBOOK.md`](../RUNBOOK.md), pas dans les ADR.
+Every new or changed technical decision ⇒ an ADR (or a superseding one). The
+`security-relevant` ADRs reference [`THREAT-MODEL.md`](../THREAT-MODEL.md). The **how**
+(procedures, commands, steps) lives in [`RUNBOOK.md`](../RUNBOOK.md), not in the ADRs.
 
 ## Index
 
-| ADR | Titre | Type | Sécu | Statut |
+| ADR | Title | Type | Sec | Status |
 |---|---|---|---|---|
-| [0000](0000-adr-process-and-repo-conventions.md) | Processus ADR & conventions du dépôt | méta | – | accepted |
-| [0001](0001-chezmoi-dotfiles-manager.md) | chezmoi comme gestionnaire de dotfiles | granulaire | non | accepted |
-| [0002](0002-tooling-and-packages-doctrine.md) | Doctrine d'outillage & paquets (apt/mise/brew, inventaire) | **doctrine** | **oui** | accepted |
-| [0003](0003-dependencies-trust-supply-chain.md) | Confiance & supply-chain des dépendances (pin/lock/soak) | **doctrine** | **oui** | accepted |
-| [0004](0004-ai-agents-security.md) | Sécurité agents IA (Claude Code, MCP, hooks) | granulaire | **oui** | accepted |
-| [0005](0005-secrets-and-credentials.md) | Secrets & credentials (Bitwarden / SSO AWS) | granulaire | **oui** | accepted |
-| [0006](0006-immutability-level-pragmatic.md) | Niveau d'immutabilité pragmatique évolutif | granulaire | **oui** | accepted |
-| [0007](0007-recurring-audit-ci-precommit.md) | Audit récurrent CI + pre-commit | granulaire | **oui** | **proposed** (niveau 2 différé) |
-| [0008](0008-tui-stack.md) | Stack TUI (WezTerm/Zellij/Helix/Yazi/Lazygit) | **groupé** | non | accepted (Helix sous validation) |
-| [0009](0009-ci-integration-test.md) | Test d'intégration CI (install isolée, GitHub Actions) | granulaire | **oui** | accepted (amende ADR-0007 forge) |
+| [0000](0000-adr-process-and-repo-conventions.md) | ADR process & repo conventions | meta | – | accepted |
+| [0001](0001-chezmoi-dotfiles-manager.md) | chezmoi as the dotfiles manager | granular | no | accepted |
+| [0002](0002-tooling-and-packages-doctrine.md) | Tooling & packages doctrine (apt/mise/brew, inventory) | **doctrine** | **yes** | accepted |
+| [0003](0003-dependencies-trust-supply-chain.md) | Dependency trust & supply-chain (pin/lock/soak) | **doctrine** | **yes** | accepted |
+| [0004](0004-ai-agents-security.md) | AI agent security (Claude Code, MCP, hooks) | granular | **yes** | accepted |
+| [0005](0005-secrets-and-credentials.md) | Secrets & credentials (Bitwarden / SSO AWS) | granular | **yes** | accepted |
+| [0006](0006-immutability-level-pragmatic.md) | Pragmatic, evolving immutability level | granular | **yes** | accepted |
+| [0007](0007-recurring-audit-ci-precommit.md) | Recurring CI audit + pre-commit | granular | **yes** | **proposed** (level 2 deferred) |
+| [0008](0008-tui-stack.md) | TUI stack (WezTerm/Zellij/Helix/Yazi/Lazygit) | **grouped** | no | accepted (Helix under validation) |
+| [0009](0009-ci-integration-test.md) | CI integration test (isolated install, GitHub Actions) | granular | **yes** | accepted (amends ADR-0007 forge) |
 
-## Conventions rapides
-- Numérotation incrémentale, jamais réutilisée. Un ADR déprécié reste (superseding, pas suppression).
-- Granulaire pour les choix structurants ; doctrine pour les règles transverses ; groupé pour les
-  familles (stack).
-- ADR = décision durable (quoi + pourquoi). État mouvant (liste d'outils, versions) → fichier de
-  conf. Procédure (comment) → `RUNBOOK.md`.
+## Quick conventions
+- Incremental numbering, never reused. A deprecated ADR stays (superseding, not deletion).
+- Granular for structural choices; doctrine for cross-cutting rules; grouped for
+  families (stacks).
+- ADR = durable decision (what + why). Moving state (tool lists, versions) → config file.
+  Procedure (how) → `RUNBOOK.md`.
+- **English only** — all docs, ADRs, code comments, commit messages and PR titles are in English.

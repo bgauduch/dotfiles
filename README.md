@@ -60,4 +60,5 @@ doctor.sh   # binaries, plugin SHAs, mise verification, sandbox, deny rules, sec
 ## Repo conventions
 
 Conventional commits; single `main` branch + feature branches; every push runs the full isolated
-install as an integration test (`.github/workflows/integration-test.yml`).
+install as an integration test (`.github/workflows/integration-test.yml`). **English only** — all
+docs, ADRs, code comments, commit messages and PR titles are written in English.

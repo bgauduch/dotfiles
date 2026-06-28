@@ -7,66 +7,66 @@ review-by: 2027-06-28
 supersedes: []
 ---
 
-# ADR-0009 — Test d'intégration CI : installation isolée complète à chaque commit
+# ADR-0009 — CI integration test: full isolated install on every commit
 
-> Amende le volet **forge & plateforme CI** d'[ADR-0007](0007-recurring-audit-ci-precommit.md)
-> (qui supposait GitLab) : le dépôt est hébergé sur **GitHub**, donc la CI est réalisée en
-> **GitHub Actions**. La matrice d'audit d'ADR-0007 reste la cible ; ADR-0009 ne tranche que la
-> plateforme et le **test d'intégration** (install isolée), pas les gates niveau 2.
+> Amends the **forge & CI platform** part of [ADR-0007](0007-recurring-audit-ci-precommit.md)
+> (which assumed GitLab): the repo is hosted on **GitHub**, so CI runs on
+> **GitHub Actions**. The ADR-0007 audit matrix remains the target; ADR-0009 only decides the
+> platform and the **integration test** (isolated install), not the level-2 gates.
 
-## Contexte et énoncé du problème
-Le source state chezmoi est entièrement statique tant qu'il n'est pas *appliqué* sur une machine.
-Un template qui ne rend pas, un script d'install non idempotent, un nom d'outil mise erroné ou un
-`.zshrc` cassé ne se voient qu'à l'`apply`. Il faut un filet qui **rejoue une installation propre
-de bout en bout** à chaque changement, avant merge — sans dépendre d'une machine humaine.
+## Context and problem statement
+The chezmoi source state is entirely static until it is *applied* to a machine.
+A template that fails to render, a non-idempotent install script, a wrong mise tool name, or a
+broken `.zshrc` only show up at `apply` time. We need a safety net that **replays a clean
+end-to-end installation** on every change, before merge — without depending on a human machine.
 
-## Drivers de décision
-- Valider l'install réelle (apt + mise + chezmoi apply + doctor), pas seulement la syntaxe.
-- Tester **chaque commit de branche** et **chaque PR** (stratégie dépôt demandée).
-- Reproductibilité locale identique à la CI (pas de divergence "marche chez moi").
-- Plateforme = celle du dépôt (GitHub), sans réécrire ADR-0007.
+## Decision drivers
+- Validate the real install (apt + mise + chezmoi apply + doctor), not just syntax.
+- Test **every branch commit** and **every PR** (the requested repo strategy).
+- Local reproducibility identical to CI (no "works on my machine" drift).
+- Platform = the repo's platform (GitHub), without rewriting ADR-0007.
 
-## Options considérées
-- Option A — Lint statique seul (shellcheck/render) : rapide mais ne prouve pas que l'install marche.
-- Option B — Job CI installant directement sur le runner : pollué par les outils pré-installés du
-  runner, pas une "machine neuve".
-- Option C — **Build d'une image Docker (`Dockerfile`) qui fait `chezmoi init --apply` puis
-  `doctor.sh` dans un Debian vierge ; le build EST le test.** Reproductible en local via
-  `make integration-test`. Complété par un job gitleaks (bloquant) et shellcheck (indicatif).
+## Considered options
+- Option A — Static lint only (shellcheck/render): fast but does not prove the install works.
+- Option B — CI job installing directly on the runner: polluted by the runner's pre-installed
+  tools, not a "fresh machine".
+- Option C — **Build a Docker image (`Dockerfile`) that runs `chezmoi init --apply` then
+  `doctor.sh` in a clean Debian; the build IS the test.** Reproducible locally via
+  `make integration-test`. Complemented by a gitleaks job (blocking) and shellcheck (advisory).
 
-## Décision
+## Decision
 **Option C.**
-- `.github/workflows/integration-test.yml` sur `push` (toutes branches) + `pull_request` :
-  - `isolated-install` (bloquant) : `docker build` du `Dockerfile` → install isolée complète.
-  - `secrets` (bloquant) : gitleaks (ADR-0007 niveau 1).
-  - `lint` (indicatif) : shellcheck.
-- `Dockerfile` + `make integration-test` : même install isolée en local.
-- **Stratégie dépôt** : conventional commits ; une branche `main` + branches de feature ;
-  intégration testée à chaque commit ; merge sur `main` via PR verte.
+- `.github/workflows/integration-test.yml` on `push` (all branches) + `pull_request`:
+  - `isolated-install` (blocking): `docker build` of the `Dockerfile` → full isolated install.
+  - `secrets` (blocking): gitleaks (ADR-0007 level 1).
+  - `lint` (advisory): shellcheck.
+- `Dockerfile` + `make integration-test`: same isolated install locally.
+- **Repo strategy**: conventional commits; one `main` branch + feature branches;
+  integration tested on every commit; merge to `main` via a green PR.
 
-## Conséquences
-- Bonnes : régression d'install détectée avant merge ; reproductible localement ; aucune machine
-  humaine requise ; la PR porte la preuve d'install (job vert).
-- Mauvaises : le build complet (mise install) prend quelques minutes par run ; le chemin macOS/brew
-  n'est pas couvert par un runner Linux (extension `macos-latest` documentée, gardée optionnelle).
+## Consequences
+- Good: install regressions caught before merge; reproducible locally; no human machine
+  required; the PR carries the install proof (green job).
+- Bad: the full build (mise install) takes a few minutes per run; the macOS/brew path
+  is not covered by a Linux runner (a `macos-latest` extension is documented, kept optional).
 
-## Menaces adressées
-- **T-CR-02** (secret commité par erreur) : gitleaks bloquant en CI.
-- **T-SC-04/08** (dépendance/binaire altéré ou cassant l'install) : une install isolée qui échoue
-  bloque le merge — le changement dangereux ne passe pas silencieusement.
+## Threats addressed
+- **T-CR-02** (secret committed by mistake): blocking gitleaks in CI.
+- **T-SC-04/08** (tampered dependency/binary that breaks the install): an isolated install that
+  fails blocks the merge — the dangerous change does not pass silently.
 
-## Surface d'attaque résiduelle
-- La CI prouve que l'install **réussit**, pas qu'elle est **innocente** (un binaire à provenance
-  valide mais malveillant passe — cf ADR-0003 T-SC-05).
-- Couverture macOS non automatisée (runner Linux) ; testée manuellement sur machine réelle.
-- Les gates déterministes niveau 2 (cross-witness, soak) restent différés (ADR-0007 / ADR-0006).
+## Residual attack surface
+- CI proves the install **succeeds**, not that it is **innocent** (a binary with valid provenance
+  but malicious behavior still passes — see ADR-0003 T-SC-05).
+- macOS coverage is not automated (Linux runner); tested manually on a real machine.
+- The deterministic level-2 gates (cross-witness, soak) remain deferred (ADR-0007 / ADR-0006).
 
-## Revue / expiration
-Revue annuelle, ou immédiate si la forge change ou si le critère de bascule niveau 2 (ADR-0006)
-est atteint (ajout des gates déterministes au pipeline).
+## Review / expiry
+Annual review, or immediate review if the forge changes or if the level-2 switch criterion
+(ADR-0006) is reached (adding the deterministic gates to the pipeline).
 
-## Vérification
+## Verification
 ```sh
-make integration-test   # docker build : install isolée complète, code retour ≠ 0 si échec
+make integration-test   # docker build: full isolated install, non-zero exit code on failure
 make secrets            # gitleaks detect
 ```
