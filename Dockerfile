@@ -27,7 +27,7 @@ RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${HOME}/.local/bin" \
  && chezmoi init --apply --source="${HOME}/.local/share/chezmoi"
 
 # Assert the core stack is installed, then run the smoke-test (informational).
-RUN for b in zsh mise zellij helix yazi lazygit starship; do \
+RUN for b in zsh mise zellij hx yazi lazygit starship; do \
       command -v "$b" >/dev/null || { echo "MISSING binary: $b"; exit 1; }; \
     done \
  && doctor.sh || true

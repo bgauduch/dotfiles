@@ -11,7 +11,7 @@ bad()  { printf '  \033[31mFAIL\033[0m %s\n' "$1"; fail=1; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
 echo "== binaries =="
-for b in zsh git mise zellij helix yazi lazygit starship; do
+for b in zsh git mise zellij hx yazi lazygit starship; do
   have "$b" && ok "$b" || bad "$b missing"
 done
 if [ "$(uname)" = Darwin ]; then
