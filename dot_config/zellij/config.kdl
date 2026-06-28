@@ -1,0 +1,28 @@
+// Zellij — multiplexer & multi-agent core (ADR-0008 / PLAN Phase 4).
+// Defaults are kept (the hint status bar stays visible — a key reason Zellij was
+// chosen: no hidden muscle-memory). VS Code-like binds are ADDED on top, not
+// replacing the defaults (no clear-defaults).
+
+theme "catppuccin-mocha"
+pane_frames true
+copy_on_select true
+scrollback_editor "hx"
+
+keybinds {
+    shared_except "locked" {
+        // Focus panes VS Code-style (Alt + arrows).
+        bind "Alt Left"  { MoveFocusOrTab "Left"; }
+        bind "Alt Right" { MoveFocusOrTab "Right"; }
+        bind "Alt Up"    { MoveFocus "Up"; }
+        bind "Alt Down"  { MoveFocus "Down"; }
+
+        // New terminal pane in the current pane's cwd ("open terminal here").
+        bind "Alt n" { NewPane; }
+
+        // Toggle floating panes overlay (VS Code-like panel toggle).
+        bind "Alt w" { ToggleFloatingPanes; }
+
+        // Toggle a floating Yazi file-tree (VS Code-like explorer).
+        bind "Alt e" { Run "yazi" { floating true; close_on_exit true; }; }
+    }
+}
