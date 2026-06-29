@@ -1,8 +1,18 @@
 # Repository conventions
 
-The single source of truth for how this repo is developed. Each rule is stated **once** here; the
-*why* lives in the linked ADR, and procedures live in [`RUNBOOK.md`](RUNBOOK.md). Other docs (the
-root `README.md`, `AGENTS.md`, the [ADR index](adr/README.md)) link here instead of restating.
+How this repo is developed. The rules below are the source of truth; the rest of the repo links here.
+
+## Single source of truth
+Every fact has exactly **one canonical home**; everywhere else **links** to it, never restates it.
+The layering:
+- **Rules / conventions** → this file (`docs/conventions.md`).
+- **Why** (decisions + rationale) → the ADRs ([`adr/`](adr/)).
+- **How** (procedures) → [`RUNBOOK.md`](RUNBOOK.md).
+- **Entry points** (root `README.md`, `AGENTS.md`, `CLAUDE.md`, the [ADR index](adr/README.md)) →
+  links only, no restated rules.
+
+Operating rule: when you add or change a fact, update its single home and link from elsewhere. If
+you find yourself about to restate something, link instead.
 
 ## Language
 - **English only** — all docs, ADRs, code comments, commit messages and PR titles.
