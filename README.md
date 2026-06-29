@@ -47,18 +47,16 @@ unlock Bitwarden → `aws sso login` → `chezmoi init --apply` → `doctor.sh`.
 doctor.sh   # binaries, plugin SHAs, mise verification, sandbox, deny rules, secret scan
 ```
 
-## Security model (summary)
+## Security model
 
-- **Supply chain** (ADR-0003): vendored zsh plugins pinned by SHA (`zsh-plugins.lock`); mise
-  `lockfile=true` so binary checksums are verified at install.
-- **Packages** (ADR-0002): one manager per tool — apt (Linux) / brew (macOS) for system bricks,
-  mise for dev tools cross-OS; third-party apt repos use individual keyrings.
-- **AI agents** (ADR-0004): Claude Code deny/ask/allow, fixed-command hooks, MCP allowlist,
-  1 agent = 1 worktree (`newagent`/`delagent`).
-- **Secrets** (ADR-0005): Bitwarden CLI templates, AWS via SSO — never committed.
+A supply-chain-conscious setup, traced in the ADRs and threat model:
+[packages](docs/adr/0002-tooling-and-packages-doctrine.md) ·
+[dependency trust](docs/adr/0003-dependencies-trust-supply-chain.md) ·
+[AI agents](docs/adr/0004-ai-agents-security.md) ·
+[secrets](docs/adr/0005-secrets-and-credentials.md) ·
+[threat model](docs/THREAT-MODEL.md).
 
-## Repo conventions
+## Contributing
 
-Conventional commits; single `main` branch + feature branches; every push runs the full isolated
-install as an integration test (`.github/workflows/integration-test.yml`). **English only** — all
-docs, ADRs, code comments, commit messages and PR titles are written in English.
+Conventions (commits, branching, language, chezmoi rules, secrets) live in
+[`docs/conventions.md`](docs/conventions.md). Agents: see [`AGENTS.md`](AGENTS.md).

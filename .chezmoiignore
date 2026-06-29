@@ -17,6 +17,8 @@ Brewfile
      automatically and need no listing here.) */}}
 README.md
 LICENSE
+AGENTS.md
+CLAUDE.md
 docs
 Dockerfile
 Containerfile

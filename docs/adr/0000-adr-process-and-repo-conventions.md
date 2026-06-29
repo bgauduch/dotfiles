@@ -6,11 +6,11 @@ consulted: []
 informed: []
 ---
 
-# ADR-0000 — Decision process (ADR) & conventions for the chezmoi dotfiles repository
+# ADR-0000 — ADR process and format
 
-> "Meta" ADR: it does not describe a technical choice in the setup, but **how choices are
-> recorded** in this repository, and **how the chezmoi target repository is structured** to hold
-> present and future decisions. Read this first.
+> "Meta" ADR: it does not describe a technical choice in the setup, but **how decisions are
+> recorded** in this repository. Repository conventions (language, secrets, templating, structure)
+> live in [`../conventions.md`](../conventions.md). Read this first.
 
 ## Context and problem statement
 
@@ -23,7 +23,7 @@ these choices become folklore and nobody (you included, six months from now) kno
 are still valid.
 
 **Decision: adopt MADR (Markdown Any Decision Records) extended with 4 fields specific to our
-shell/tooling/security context, and freeze the chezmoi repository conventions below.**
+shell/tooling/security context.**
 
 ## Decision: ADR format = extended MADR
 
@@ -61,8 +61,8 @@ column impoverishes the record. Extended MADR is the right compromise.
 ## Decision: ADR granularity
 
 Four types of ADR, marked in the *Type* column of the README:
-- **meta**: does not record a technical choice in the setup but the decision *process* and the
-  repository conventions (this ADR-0000). Only one expected.
+- **meta**: does not record a technical choice in the setup but the decision *process* itself
+  (this ADR-0000). Only one expected.
 - **doctrine**: a durable cross-cutting rule that applies to several topics (e.g. package routing
   ADR-0002, trust cycle ADR-0003). Avoids repeating the same rule per topic.
 - **granular**: one structural choice = one file (see below).
@@ -76,36 +76,7 @@ Four types of ADR, marked in the *Type* column of the README:
   noise. The detail lives in the config file (Brewfile, mise.toml, zsh-plugins.lock); the grouped
   ADR carries the *policy* (inclusion/exclusion criteria).
 
-## Decision: structure of the chezmoi target repository
-
-```
-~/.local/share/chezmoi/                 # source state (= this git repo)
-├── docs/
-│   ├── adr/                            # all ADRs (this folder)
-│   │   ├── 0000-adr-process-and-repo-conventions.md   # this ADR
-│   │   ├── 0001-*.md ...              # decision ADRs
-│   │   └── _template.md               # extended MADR template
-│   ├── THREAT-MODEL.md                # 3-layer threat model (referenced by the ADRs)
-│   └── RUNBOOK.md                     # procedures (bump plugin, rotation, incident)
-├── .chezmoi.toml.tmpl                 # init prompts (name, email, remote)
-├── .chezmoidata.toml                  # shared data (derived osid)
-├── .chezmoiignore                     # ignore per OS
-├── .chezmoiscripts/                   # run_once_ / run_onchange_ scripts
-├── dot_config/                        # configs (wezterm, zellij, helix, yazi, lazygit, starship, mise)
-├── dot_zshrc.tmpl                     # shell, templated per OS
-├── dot_local/
-│   ├── bin/                           # personal scripts (newagent, audit, install-zsh-plugins)
-│   └── share/zsh/plugins/             # vendored plugins (managed by lockfile, see ADR-0003)
-├── zsh-plugins.lock                   # plugin lockfile (repo + SHA + tag + review date)
-├── Brewfile.tmpl                      # macOS tools (see grouped tools ADR)
-└── audit/                             # recurring audit pipeline (see ADR-0007)
-    ├── gates/                         # deterministic gates (soak, signature, cross-witness)
-    └── scan/                          # heuristic diff scan
-```
-
-### Conventions
-- **English only.** All repository content — docs, ADRs, code comments, commit messages, PR
-  titles — is written in English.
+## ADR conventions
 - **A new or modified technical decision ⇒ an ADR** (or update of an existing one via
   `status: superseded by`). No untracked structural choice.
 - **Durable decision vs moving state.** An ADR records a **durable structural decision** (a
@@ -117,13 +88,10 @@ Four types of ADR, marked in the *Type* column of the README:
   the first modification and pollutes the decision history with maintenance noise.
 - **Numbering**: `NNNN-title-kebab.md`, incremental, never reused (a deprecated ADR stays; we do
   not delete history).
-- **Immutability of history**: an accepted ADR is not rewritten; it is *superseded* by a new one.
-  The record of "why we thought that at the time" is the value.
+- **Immutability of history**: an accepted ADR is not rewritten on its decision; it is
+  *superseded* by a new one. The record of "why we thought that at the time" is the value.
 - **ADR ↔ threat link**: every `security-relevant` ADR references the threat IDs in
-  `docs/THREAT-MODEL.md` in its "Threats addressed" field.
-- **chezmoi templating**: OS differences via `.tmpl` + `{{ if eq .chezmoi.os ... }}`, never
-  files duplicated per OS. WSL detection via `.chezmoi.kernel.osrelease | lower | contains "microsoft"`.
-- **Secrets**: never in plain text in the repo; references via Bitwarden CLI / AWS SSO (ADR-0005).
+  [`../THREAT-MODEL.md`](../THREAT-MODEL.md) in its "Threats addressed" field.
 
 ## Consequences
 - Good: durable traceability, documented onboarding of a new machine, security decisions
@@ -132,10 +100,10 @@ Four types of ADR, marked in the *Type* column of the README:
   of an untracked setup is higher over time.
 
 ## Review / expiry
-`review-by: trigger:new-layer` — review these conventions if a 4th layer is added (e.g. dedicated
+`review-by: trigger:new-layer` — review the ADR process if a 4th layer is added (e.g. dedicated
 secrets management, or a switch to Nix that would change the repo structure).
 
 ## Verification
-- The `README.md` index is the source of truth for the list of ADRs (NO hard-coded counter here:
-  the number of ADRs is a moving state, it is not tracked in an ADR).
+- The [`README.md`](README.md) index is the source of truth for the list of ADRs (NO hard-coded
+  counter here: the number of ADRs is a moving state, it is not tracked in an ADR).
 - Every `security-relevant: true` ADR has the 4 custom fields non-empty (lint possible).

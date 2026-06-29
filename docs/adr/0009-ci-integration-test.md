@@ -41,7 +41,7 @@ end-to-end installation** on every change, before merge — without depending on
   - `secrets` (blocking): gitleaks (ADR-0007 level 1).
   - `lint` (advisory): shellcheck.
 - `Dockerfile` + `make integration-test`: same isolated install locally.
-- **Repo strategy**: conventional commits; one `main` branch + feature branches;
+- **Repo strategy** (general conventions: [`../conventions.md`](../conventions.md)):
   integration tested on every commit; merge to `main` via a green PR.
 
 ## Consequences

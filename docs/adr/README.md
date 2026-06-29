@@ -12,7 +12,7 @@ Every new or changed technical decision ⇒ an ADR (or a superseding one). The
 
 | ADR | Title | Type | Sec | Status |
 |---|---|---|---|---|
-| [0000](0000-adr-process-and-repo-conventions.md) | ADR process & repo conventions | meta | – | accepted |
+| [0000](0000-adr-process-and-repo-conventions.md) | ADR process and format | meta | – | accepted |
 | [0001](0001-chezmoi-dotfiles-manager.md) | chezmoi as the dotfiles manager | granular | no | accepted |
 | [0002](0002-tooling-and-packages-doctrine.md) | Tooling & packages doctrine (apt/mise/brew, inventory) | **doctrine** | **yes** | accepted |
 | [0003](0003-dependencies-trust-supply-chain.md) | Dependency trust & supply-chain (pin/lock/soak) | **doctrine** | **yes** | accepted |
@@ -23,10 +23,7 @@ Every new or changed technical decision ⇒ an ADR (or a superseding one). The
 | [0008](0008-tui-stack.md) | TUI stack (WezTerm/Zellij/Helix/Yazi/Lazygit) | **grouped** | no | accepted (Helix under validation) |
 | [0009](0009-ci-integration-test.md) | CI integration test (isolated install, GitHub Actions) | granular | **yes** | accepted (amends ADR-0007 forge) |
 
-## Quick conventions
-- Incremental numbering, never reused. A deprecated ADR stays (superseding, not deletion).
-- Granular for structural choices; doctrine for cross-cutting rules; grouped for
-  families (stacks).
-- ADR = durable decision (what + why). Moving state (tool lists, versions) → config file.
-  Procedure (how) → `RUNBOOK.md`.
-- **English only** — all docs, ADRs, code comments, commit messages and PR titles are in English.
+## See also
+- **ADR format & process** (granularity, numbering, immutability): [ADR-0000](0000-adr-process-and-repo-conventions.md).
+- **Repository conventions** (language, commits, branching, secrets, structure):
+  [`../conventions.md`](../conventions.md).
