@@ -32,7 +32,7 @@ you find yourself about to restate something, link instead.
   CI triggers on `pull_request` + `push` to `main` only — no duplicate runs
   ([ADR-0009](adr/0009-ci-integration-test.md) /
   [ADR-0007](adr/0007-recurring-audit-ci-precommit.md)).
-- Enable the local warn-level **gitleaks pre-commit** hook once per clone: `make hooks`
+- Enable the local warn-level **gitleaks pre-commit** hook once per clone: `mise run hooks`
   (the blocking secret gate is CI — [ADR-0007](adr/0007-recurring-audit-ci-precommit.md)).
 
 ## ADRs
@@ -55,9 +55,11 @@ you find yourself about to restate something, link instead.
 - **Never committed in plain text.** Static secrets via Bitwarden CLI templates; AWS via SSO
   ([ADR-0005](adr/0005-secrets-and-credentials.md)). Bootstrap order: [`RUNBOOK.md`](RUNBOOK.md).
 
-## Packaging
+## Packaging & tasks
 - **One manager per tool**: apt (Linux) / brew (macOS) for system bricks, mise for dev tools
   cross-OS ([ADR-0002](adr/0002-tooling-and-packages-doctrine.md)).
+- **mise is also the task runner** — repo dev tasks run via `mise run <task>`
+  (`integration-test`, `hooks`, `lint`, `secrets`), defined in `mise.toml`. No separate `make`.
 
 ## Repository structure
 The git repo root is the chezmoi source state:

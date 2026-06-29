@@ -16,7 +16,7 @@ source state.
 - Edit the **chezmoi source state** (`dot_*`, `.chezmoiscripts/`, …), never `~` directly.
 - Follow [`docs/conventions.md`](docs/conventions.md) for commits, language, branching,
   chezmoi rules and secrets.
-- Before pushing, run **`make integration-test`** (the same clean isolated install CI runs).
+- Before pushing, run **`mise run integration-test`** (the same clean isolated install CI runs).
 - Agent security model — deny rules, sandbox, MCP allowlist:
   [ADR-0004](docs/adr/0004-ai-agents-security.md).
 - Never commit secrets; Bitwarden CLI + AWS SSO:

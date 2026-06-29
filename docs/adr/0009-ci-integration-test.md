@@ -32,7 +32,7 @@ end-to-end installation** on every change, before merge — without depending on
   tools, not a "fresh machine".
 - Option C — **Build a Docker image (`Dockerfile`) that runs `chezmoi init --apply` then
   `doctor.sh` in a clean Debian; the build IS the test.** Reproducible locally via
-  `make integration-test`. Complemented by a gitleaks job (blocking) and shellcheck (advisory).
+  `mise run integration-test`. Complemented by a gitleaks job (blocking) and shellcheck (advisory).
 
 ## Decision
 **Option C.**
@@ -42,7 +42,7 @@ end-to-end installation** on every change, before merge — without depending on
   - `isolated-install` (blocking): `docker build` of the `Dockerfile` → full isolated install.
   - `secrets` (blocking): gitleaks (ADR-0007 level 1).
   - `lint` (advisory): shellcheck + actionlint.
-- `Dockerfile` + `make integration-test`: same isolated install locally.
+- `Dockerfile` + `mise run integration-test`: same isolated install locally.
 - **Repo strategy** (general conventions: [`../conventions.md`](../conventions.md)):
   integration tested on every PR; merge to `main` via a green PR.
 
@@ -69,6 +69,6 @@ Annual review, or immediate review if the forge changes or if the level-2 switch
 
 ## Verification
 ```sh
-make integration-test   # docker build: full isolated install, non-zero exit code on failure
-make secrets            # gitleaks detect
+mise run integration-test   # docker build: full isolated install, non-zero exit code on failure
+mise run secrets            # gitleaks detect
 ```

@@ -2,7 +2,7 @@
 # Building this image performs a clean `chezmoi init --apply` exactly as on a
 # fresh Linux machine (apt bricks + mise bootstrap + dev tools + configs + zsh
 # plugins), then asserts the core binaries and runs doctor.sh. A successful build
-# == the install works end to end. Reproduce locally with `make integration-test`.
+# == the install works end to end. Reproduce locally with `mise run integration-test`.
 FROM debian:bookworm-slim
 
 ARG USER=dev

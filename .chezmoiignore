@@ -22,6 +22,6 @@ CLAUDE.md
 docs
 Dockerfile
 Containerfile
-Makefile
+mise.toml
 zsh-plugins.lock
 mise.lock
