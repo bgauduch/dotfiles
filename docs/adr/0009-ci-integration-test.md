@@ -22,7 +22,7 @@ end-to-end installation** on every change, before merge — without depending on
 
 ## Decision drivers
 - Validate the real install (apt + mise + chezmoi apply + doctor), not just syntax.
-- Test **every branch commit** and **every PR** (the requested repo strategy).
+- Test **every PR** (the merge gate) and **`main` after merge**, without double-running.
 - Local reproducibility identical to CI (no "works on my machine" drift).
 - Platform = the repo's platform (GitHub), without rewriting ADR-0007.
 
@@ -36,13 +36,15 @@ end-to-end installation** on every change, before merge — without depending on
 
 ## Decision
 **Option C.**
-- `.github/workflows/integration-test.yml` on `push` (all branches) + `pull_request`:
+- `.github/workflows/integration-test.yml` on `pull_request` + `push` to `main` only (a
+  feature-branch push is already covered by its PR, so triggering on all-branch pushes too would
+  double every run):
   - `isolated-install` (blocking): `docker build` of the `Dockerfile` → full isolated install.
   - `secrets` (blocking): gitleaks (ADR-0007 level 1).
-  - `lint` (advisory): shellcheck.
+  - `lint` (advisory): shellcheck + actionlint.
 - `Dockerfile` + `make integration-test`: same isolated install locally.
 - **Repo strategy** (general conventions: [`../conventions.md`](../conventions.md)):
-  integration tested on every commit; merge to `main` via a green PR.
+  integration tested on every PR; merge to `main` via a green PR.
 
 ## Consequences
 - Good: install regressions caught before merge; reproducible locally; no human machine

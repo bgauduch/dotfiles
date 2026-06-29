@@ -1,11 +1,12 @@
 name: integration-test
 
-# Repo strategy (ADR-0009): run the FULL isolated installation on every branch
-# push and on PRs, so each commit is integration-tested and the PR is validated
-# by a clean end-to-end install before merge.
+# Repo strategy (ADR-0009): run the FULL isolated installation on every PR (the
+# merge gate) and on push to main (post-merge verification). Feature-branch pushes
+# are covered by their PR, so we don't also trigger on push to all branches —
+# that would double every run.
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
 
 jobs:

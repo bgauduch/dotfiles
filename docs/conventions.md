@@ -28,7 +28,8 @@ you find yourself about to restate something, link instead.
   type (`feat`, `fix`, `docs`, `chore`, `ci`, …) matching the PR's eventual squash subject —
   e.g. `feat/portable-tui-dotfiles`, `docs/conventions-ssot`.
 - Merge to `main` only via a **PR with green CI** — no direct push.
-- Every commit is **integration-tested** (full isolated install) on push and PR
+- Every **PR** is **integration-tested** (full isolated install); `main` is re-verified on merge.
+  CI triggers on `pull_request` + `push` to `main` only — no duplicate runs
   ([ADR-0009](adr/0009-ci-integration-test.md) /
   [ADR-0007](adr/0007-recurring-audit-ci-precommit.md)).
 - Enable the local warn-level **gitleaks pre-commit** hook once per clone: `make hooks`
