@@ -1,5 +1,10 @@
 # Dotfiles repo tasks. The integration test mirrors CI exactly (ADR-0009).
-.PHONY: integration-test lint secrets
+.PHONY: integration-test lint secrets hooks
+
+# Enable the repo git hooks once per clone (warn-level gitleaks pre-commit, ADR-0007).
+hooks:
+	git config core.hooksPath .githooks
+	@echo "git hooks enabled (.githooks): pre-commit runs gitleaks in warn mode."
 
 # Full isolated installation in a fresh container (same as CI).
 integration-test:

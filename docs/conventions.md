@@ -24,10 +24,15 @@ you find yourself about to restate something, link instead.
 
 ## Branching & merge
 - Single **`main`** branch + short-lived **feature branches**.
+- Branch names follow **`<type>/<short-kebab-summary>`**, where `<type>` is a Conventional Commit
+  type (`feat`, `fix`, `docs`, `chore`, `ci`, …) matching the PR's eventual squash subject —
+  e.g. `feat/portable-tui-dotfiles`, `docs/conventions-ssot`.
 - Merge to `main` only via a **PR with green CI** — no direct push.
 - Every commit is **integration-tested** (full isolated install) on push and PR
   ([ADR-0009](adr/0009-ci-integration-test.md) /
   [ADR-0007](adr/0007-recurring-audit-ci-precommit.md)).
+- Enable the local warn-level **gitleaks pre-commit** hook once per clone: `make hooks`
+  (the blocking secret gate is CI — [ADR-0007](adr/0007-recurring-audit-ci-precommit.md)).
 
 ## ADRs
 - Every **durable decision** is recorded as an ADR; **moving state** (tool lists, versions,
