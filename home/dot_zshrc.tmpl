@@ -34,6 +34,18 @@ if command -v starship >/dev/null 2>&1; then
   eval "$(starship init zsh)"
 fi
 
+# --- chezmoi workflow aliases (daily sync; see docs/RUNBOOK.md) ---
+if command -v chezmoi >/dev/null 2>&1; then
+  alias cm='chezmoi'
+  alias cme='chezmoi edit --apply'     # edit a managed file in $EDITOR, then apply
+  alias cma='chezmoi add'              # capture a new/edited target into the source state
+  alias cmra='chezmoi re-add'          # re-add already-managed files changed in place
+  alias cmu='chezmoi update'           # git pull + apply from upstream
+  alias cmd='chezmoi diff'             # preview source -> target changes
+  alias cms='chezmoi status'
+  alias cmcd='chezmoi cd'              # enter the source repo (commit + push via PR there)
+fi
+
 # --- 5) Custom aliases / functions (mine) ---
 # TODO(shell-audit): paste the "mine" block here verbatim once the audit is run
 # on the real machine. Procedure: docs/PLAN_AUDIT_SHELL.md.

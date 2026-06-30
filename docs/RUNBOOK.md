@@ -16,6 +16,21 @@
      not cloned yet. Pinning/checksums apply to **later bumps** (ADR-0003).
 4. **Smoke test**: `doctor.sh` (see below).
 
+## Daily flow (edit / update / sync / conflicts)
+Source of truth = the git repo; every machine converges via chezmoi. Shell aliases: `dot_zshrc.tmpl`
+(`cm*`). Editor = **Helix** (`$EDITOR=hx`).
+- **Edit a config**: `chezmoi edit --apply ~/.config/<...>` (`cme`) — edits the *source* file under
+  `home/` in Helix, then applies. (Never edit `~` directly.)
+- **Capture an out-of-band change** made directly in `$HOME`: `chezmoi add <path>` (`cma`) /
+  `chezmoi re-add` (`cmra`) for already-managed files.
+- **Update from upstream**: `chezmoi diff` (`cmd`) to preview, then `chezmoi update` (`cmu`) =
+  `git pull` + `apply`.
+- **Push your changes** (multi-machine): `chezmoi cd` (`cmcd`) → branch `<type>/<kebab>` →
+  commit → push → PR (green CI) → merge. Other machines then `chezmoi update`. (Direct push to
+  `main` is gated; auto-commit/push is deferred — ADR-0010.)
+- **Local vs upstream divergence / conflicts**: `chezmoi status` (`cms`); resolve with
+  `chezmoi merge <target>` (opens a 3-way merge in `$EDITOR`).
+
 ## Dependency bump ritual (decision: ADR-0003)
 To be run for any bump of a vendored plugin / mise tool / LSP / MCP server:
 1. `git log --oneline <old>..<new>` on the upstream: review the commits introduced.
