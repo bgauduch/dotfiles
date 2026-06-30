@@ -64,6 +64,8 @@ you find yourself about to restate something, link instead.
 ## Secrets
 - **Never committed in plain text.** Static secrets via Bitwarden CLI templates; AWS via SSO
   ([ADR-0005](adr/0005-secrets-and-credentials.md)). Bootstrap order: [`RUNBOOK.md`](RUNBOOK.md).
+- The repo is **public** — a committed secret is irreversible public exposure. Nothing sensitive
+  ever lives in the repo (rendered at `apply`, never stored); gitleaks (CI) is the backstop.
 
 ## Packaging & tasks
 - **One manager per tool**: apt (Linux) / brew (macOS) for system bricks, mise for dev tools

@@ -6,9 +6,6 @@
 
 ## Bootstrapping a fresh machine (mandatory order)
 1. **Secrets first** (ADR-0005): `bw login` + `bw unlock`, export the `BW_SESSION` session.
-   - Cold-start: if the dotfiles repo is private, clone it over **HTTPS + token** (retrieved from the vault
-     via `bw`) BEFORE having an SSH key; the SSH key is then rendered by chezmoi. Avoids the
-     SSH-key ⇄ repo deadlock.
 2. **AWS** (ADR-0005): `aws sso login` (or `granted`) per profile; no static key on disk.
 3. **chezmoi**: `sh -c "$(curl -fsLS get.chezmoi.io)"` then `chezmoi init --apply <repo>`.
    - Root of trust: machine assumed clean at the initial bootstrap (TOFU assumed, cf.

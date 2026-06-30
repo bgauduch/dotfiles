@@ -36,9 +36,9 @@ need a *positive* source of truth and an explicit bootstrap flow. Two distinct k
    login per profile/account; fallback to `aws-vault` (OS keychain backend) **only** for an
    account without SSO. No long-term key on disk; Bitwarden is used only to *transport* an
    unavoidable long-term secret, not to replace an SSO.
-3. **Bootstrap & cold-start order**: `bw unlock` BEFORE the first `chezmoi apply`; clone the
-   private repo over **HTTPS + token** (from the vault) to avoid the SSH-key ⇄ repo deadlock. Procedure:
-   RUNBOOK.
+3. **Bootstrap & cold-start order**: `bw unlock` BEFORE the first `chezmoi apply` (templates need
+   the vault to render). The repo is **public**, so it clones with no auth — no SSH-key ⇄ repo
+   deadlock. Procedure: RUNBOOK.
 
 ## Consequences
 - Good: single source, nothing in plaintext, traced bootstrap, no static AWS key; the repo can be

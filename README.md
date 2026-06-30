@@ -29,15 +29,10 @@ Portable, security-conscious TUI development environment — identical on **macO
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply bgauduch/dotfiles
 ```
 
-This repo is **private**, so the one-liner needs GitHub auth first — either an existing token/`gh
-auth`, or clone over SSH:
-
-```sh
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply git@github.com:bgauduch/dotfiles.git
-```
+Public repo — the one-liner clones over HTTPS with no auth needed.
 
 Cold-start order matters (secrets first) — see [`docs/RUNBOOK.md`](docs/RUNBOOK.md):
-auth GitHub → unlock Bitwarden → `aws sso login` → `chezmoi init --apply` → `doctor.sh`.
+unlock Bitwarden → `aws sso login` → `chezmoi init --apply` → `doctor.sh`.
 Day-to-day edit/update/sync flow is in the [RUNBOOK](docs/RUNBOOK.md#daily-flow-edit--update--sync--conflicts).
 
 ## Key bindings (Zellij, VS Code-like)

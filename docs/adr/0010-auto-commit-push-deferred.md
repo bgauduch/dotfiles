@@ -18,7 +18,9 @@ chezmoi can auto-commit (and auto-push) source-state changes on `apply` via `[gi
 "merge to `main` only via a PR with green CI" (ADR-0009 / ADR-0007): the integration test +
 gitleaks are the gate. `autoPush` would push straight to the tracked branch and **bypass that
 gate**, and the local gitleaks pre-commit is warn-only by design (ADR-0007). So auto-push is in
-direct tension with the branch model.
+direct tension with the branch model. The repo is **public**, which raises the stakes: a secret
+pushed past the warn-only pre-commit would be world-visible immediately (effectively burned), not
+merely committed.
 
 ## Decision drivers
 - Daily ergonomics (small dotfile edits should not require ceremony).
@@ -41,7 +43,8 @@ friction proves real. Option C only if the branch model itself moves to trunk + 
 
 ## Threats addressed
 - **T-CR-02** (secret committed/pushed by mistake): deferring auto-push keeps gitleaks-in-CI (on
-  the PR) as a mandatory gate before anything lands on `main`.
+  the PR) as a mandatory gate before anything lands on `main`. On a **public** repo this matters
+  more, not less — an auto-pushed secret would be exposed to the world instantly.
 
 ## Residual attack surface
 - The warn-only pre-commit (ADR-0007) does not block locally; the real gate stays in CI. Unchanged
