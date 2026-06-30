@@ -13,7 +13,8 @@ source state.
   [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
 ## Working rules for agents
-- Edit the **chezmoi source state** (`dot_*`, `.chezmoiscripts/`, …), never `~` directly.
+- Edit the **chezmoi source state** under **`home/`** (`home/dot_*`, `home/.chezmoiscripts/`, …) —
+  never `~` directly. (`.chezmoiroot` → `home`; repo-management files live above it.)
 - Follow [`docs/conventions.md`](docs/conventions.md) for commits, language, branching,
   chezmoi rules and secrets.
 - Before pushing, run **`mise run integration-test`** (the same clean isolated install CI runs).

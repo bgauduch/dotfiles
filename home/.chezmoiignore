@@ -1,5 +1,7 @@
 {{/* OS-conditional ignores. Differences are handled by templates, not duplicate
-     files — this only drops whole files that make no sense on a given OS. */}}
+     files — this only drops whole files that make no sense on a given OS.
+     Repo-management files (README, docs, .github, Dockerfile, mise.toml …) live
+     ABOVE the source root (see .chezmoiroot) so chezmoi never sees them. */}}
 
 {{/* Brewfile is macOS-only (ADR-0002: no Homebrew on Linux/WSL). */}}
 {{- if ne .chezmoi.os "darwin" }}
@@ -12,16 +14,7 @@ Brewfile
 .config/wezterm
 {{- end }}
 
-{{/* Repo-management files living at the source root must NOT be deployed to $HOME.
-     (Entries beginning with "." — .git, .github, .chezmoi* — are ignored by chezmoi
-     automatically and need no listing here.) */}}
-README.md
-LICENSE
-AGENTS.md
-CLAUDE.md
-docs
-Dockerfile
-Containerfile
-mise.toml
+{{/* Lockfiles live in the source state (read by the install scripts) but are not
+     dotfiles to deploy into $HOME. */}}
 zsh-plugins.lock
 mise.lock

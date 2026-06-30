@@ -15,13 +15,13 @@ Portable, security-conscious TUI development environment — identical on **macO
 
 | Layer       | Tool     | Config |
 |-------------|----------|--------|
-| Emulator    | WezTerm  | `dot_config/wezterm/wezterm.lua.tmpl` (macOS / Windows-side on WSL2) |
-| Multiplexer | Zellij   | `dot_config/zellij/` (+ multi-agent `layouts/agent.kdl.tmpl`) |
-| Editor      | Helix    | `dot_config/helix/` |
-| File-tree   | Yazi     | `dot_config/yazi/` |
-| Git         | Lazygit  | `dot_config/lazygit/config.yml` |
-| Shell       | Zsh + Starship | `dot_zshrc.tmpl`, `dot_config/starship.toml` |
-| Toolchain   | mise (+ apt/brew) | `dot_config/mise/config.toml.tmpl`, `Brewfile.tmpl` |
+| Emulator    | WezTerm  | `home/dot_config/wezterm/wezterm.lua.tmpl` (macOS / Windows-side on WSL2) |
+| Multiplexer | Zellij   | `home/dot_config/zellij/` (+ multi-agent `layouts/agent.kdl.tmpl`) |
+| Editor      | Helix    | `home/dot_config/helix/` |
+| File-tree   | Yazi     | `home/dot_config/yazi/` |
+| Git         | Lazygit  | `home/dot_config/lazygit/config.yml` |
+| Shell       | Zsh + Starship | `home/dot_zshrc.tmpl`, `home/dot_config/starship.toml` |
+| Toolchain   | mise (+ apt/brew) | `home/dot_config/mise/config.toml.tmpl`, `home/Brewfile.tmpl` |
 
 ## Install (new machine)
 

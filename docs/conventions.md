@@ -42,14 +42,16 @@ you find yourself about to restate something, link instead.
 - The *why* lives in the ADRs; the *how* (procedures) in [`RUNBOOK.md`](RUNBOOK.md).
 
 ## chezmoi source state
-- This git repo **is** the chezmoi source state. Edit the **source state** — never `~` directly.
+- The **`home/`** subtree is the chezmoi source state (`.chezmoiroot` → `home`); repo-management
+  files (README, docs, CI, Dockerfile, mise.toml …) live **above** it and are never seen by
+  chezmoi. Edit the **source state** — never `~` directly.
 - OS differences via **templates** (`.tmpl` + `{{ if eq .chezmoi.os ... }}`), never duplicate
   files per OS. WSL detection: `.chezmoi.kernel.osrelease | lower | contains "microsoft"`
   ([ADR-0001](adr/0001-chezmoi-dotfiles-manager.md)).
-- chezmoi naming prefixes: `dot_` (→ `.`), `executable_` (→ `+x`), and `run_once_` /
-  `run_onchange_` scripts under `.chezmoiscripts/`.
-- Repo-management files at the source root (README, LICENSE, docs, AGENTS.md, CLAUDE.md, …) are
-  kept out of `$HOME` via [`.chezmoiignore`](../.chezmoiignore) — they are not dotfiles.
+- chezmoi naming prefixes (under `home/`): `dot_` (→ `.`), `executable_` (→ `+x`), and
+  `run_once_` / `run_onchange_` scripts under `.chezmoiscripts/`.
+- Files inside `home/` that are not dotfiles (lockfiles; `Brewfile` off macOS; `.config/wezterm`
+  on WSL) are excluded via [`home/.chezmoiignore`](../home/.chezmoiignore).
 
 ## Secrets
 - **Never committed in plain text.** Static secrets via Bitwarden CLI templates; AWS via SSO
@@ -62,26 +64,25 @@ you find yourself about to restate something, link instead.
   (`integration-test`, `hooks`, `lint`, `secrets`), defined in `mise.toml`. No separate `make`.
 
 ## Repository structure
-The git repo root is the chezmoi source state:
+The git repo root holds repo-management files; the chezmoi **source state** lives in `home/`
+(`.chezmoiroot` → `home`), so nothing above it is ever deployed to `$HOME`:
 
 ```
-~/.local/share/chezmoi/                 # source state (= this git repo)
-├── docs/
-│   ├── conventions.md                  # this file — repository conventions
-│   ├── adr/                            # ADRs + index (README.md) + _template.md
-│   ├── THREAT-MODEL.md                 # 3-layer threat model (referenced by ADRs)
-│   └── RUNBOOK.md                      # procedures (bootstrap, bumps, rollback)
-├── AGENTS.md, CLAUDE.md                # agent entry points (not deployed to $HOME)
-├── .chezmoi.toml.tmpl                  # init prompts (name, email) + derived osid
-├── .chezmoidata.toml                   # shared data (theme, font)
-├── .chezmoiignore                      # ignore per OS + repo-management files
-├── .chezmoiscripts/                    # run_once_ / run_onchange_ install scripts
-├── dot_config/                         # wezterm, zellij, helix, yazi, lazygit, starship, mise
-├── dot_zshrc.tmpl                      # shell, templated per OS
-├── dot_claude/                         # Claude Code settings (deployed to ~/.claude)
-├── dot_local/bin/                      # newagent, delagent, doctor.sh, install-zsh-plugins.sh
-├── zsh-plugins.lock                    # plugin lockfile (repo + SHA + tag + review date)
-├── Brewfile.tmpl                       # macOS tool inventory
-├── Dockerfile, Makefile                # local integration test (not deployed)
-└── .github/                            # CI workflows, renovate, commitlint config
+<repo root>                              # git repo
+├── .chezmoiroot                        # → "home" (points chezmoi at the source state)
+├── README.md, LICENSE, AGENTS.md, CLAUDE.md
+├── docs/                               # conventions.md, adr/, THREAT-MODEL.md, RUNBOOK.md
+├── Dockerfile, mise.toml               # local integration test + dev tasks (not deployed)
+├── .github/, .githooks/                # CI workflows, renovate, commitlint; git hooks
+└── home/                               # ← chezmoi SOURCE STATE (applied to $HOME)
+    ├── .chezmoi.toml.tmpl              # init prompts (name, email) + derived osid
+    ├── .chezmoidata.toml               # shared data (theme, font)
+    ├── .chezmoiignore                  # OS-only exclusions + lockfiles
+    ├── .chezmoiscripts/                # run_once_ / run_onchange_ install scripts
+    ├── dot_config/                     # wezterm, zellij, helix, yazi, lazygit, starship, mise
+    ├── dot_zshrc.tmpl                  # shell, templated per OS
+    ├── dot_claude/                     # Claude Code settings (→ ~/.claude)
+    ├── dot_local/bin/                  # newagent, delagent, doctor.sh, install-zsh-plugins.sh
+    ├── zsh-plugins.lock                # plugin lockfile (ignored from $HOME)
+    └── Brewfile.tmpl                   # macOS tool inventory (→ ~/Brewfile on darwin)
 ```
