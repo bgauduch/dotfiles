@@ -22,7 +22,8 @@ COPY --chown=${USER}:${USER} . /home/${USER}/.local/share/chezmoi
 
 # Install chezmoi, then init + apply non-interactively (prompts via env vars).
 ENV CHEZMOI_NAME="CI User" \
-    CHEZMOI_EMAIL="ci@example.com"
+    CHEZMOI_EMAIL="ci@example.com" \
+    CHEZMOI_PROFILE="personal"
 RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${HOME}/.local/bin" \
  && chezmoi init --apply --source="${HOME}/.local/share/chezmoi"
 

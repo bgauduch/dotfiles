@@ -31,3 +31,11 @@ starship = "latest"
 # DEFERRED: added after confirming exact mise registry names on a real machine,
 # to keep the integration-test CI green. Intended set (see helix/languages.toml):
 #   terraform-ls, gopls, bash-language-server, yaml-language-server, marksman.
+
+{{ if eq .profile "work" -}}
+# --- Work-only tools (profile=work) — gated by the machine profile (ADR-0002).
+# Empty by default; fill per work needs, e.g.:
+#   terraform = "latest"
+#   kubectl   = "latest"
+#   aws-vault = "latest"
+{{- end }}

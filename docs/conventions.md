@@ -53,6 +53,12 @@ you find yourself about to restate something, link instead.
 - Files inside `home/` that are not dotfiles (lockfiles; `Brewfile` off macOS; `.config/wezterm`
   on WSL) are excluded via [`home/.chezmoiignore`](../home/.chezmoiignore).
 
+## Profiles
+- `chezmoi init` asks for a **machine profile** (`personal` | `work`), stored as `.profile`
+  (CI/override: `CHEZMOI_PROFILE`). Gate machine-specific config or tools with
+  `{{ if eq .profile "work" }}…{{ end }}` — e.g. work-only mise tools in
+  `home/dot_config/mise/config.toml.tmpl`.
+
 ## Secrets
 - **Never committed in plain text.** Static secrets via Bitwarden CLI templates; AWS via SSO
   ([ADR-0005](adr/0005-secrets-and-credentials.md)). Bootstrap order: [`RUNBOOK.md`](RUNBOOK.md).
