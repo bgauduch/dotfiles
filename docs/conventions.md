@@ -52,6 +52,8 @@ you find yourself about to restate something, link instead.
   `run_once_` / `run_onchange_` scripts under `.chezmoiscripts/`.
 - Files inside `home/` that are not dotfiles (lockfiles; `Brewfile` off macOS; `.config/wezterm`
   on WSL) are excluded via [`home/.chezmoiignore`](../home/.chezmoiignore).
+- Edit configs with `chezmoi edit --apply <target>` — editor is **Helix** (`$EDITOR=hx`).
+  Daily edit/update/sync flow: [`RUNBOOK.md`](RUNBOOK.md#daily-flow-edit--update--sync--conflicts).
 
 ## Profiles
 - `chezmoi init` asks for a **machine profile** (`personal` | `work`), stored as `.profile`
