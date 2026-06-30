@@ -22,6 +22,7 @@ Every new or changed technical decision ⇒ an ADR (or a superseding one). The
 | [0007](0007-recurring-audit-ci-precommit.md) | Recurring CI audit + pre-commit | granular | **yes** | **proposed** (level 2 deferred) |
 | [0008](0008-tui-stack.md) | TUI stack (WezTerm/Zellij/Helix/Yazi/Lazygit) | **grouped** | no | accepted (Helix under validation) |
 | [0009](0009-ci-integration-test.md) | CI integration test (isolated install, GitHub Actions) | granular | **yes** | accepted (amends ADR-0007 forge) |
+| [0010](0010-auto-commit-push-deferred.md) | chezmoi auto-commit/push — deferred | granular | **yes** | **proposed** (deferred) |
 
 ## See also
 - **ADR format & process** (granularity, numbering, immutability): [ADR-0000](0000-adr-process-and-repo-conventions.md).
