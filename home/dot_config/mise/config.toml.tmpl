@@ -1,0 +1,41 @@
+# Global mise config — runtimes (all OS) + TUI dev tools (Linux/WSL only).
+#
+# Routing (ADR-0002 "one manager per tool"): on macOS the TUI tools come from
+# Homebrew (see Brewfile), so they are templated OUT here to avoid a two-manager
+# duplicate. On Linux/WSL mise is the cross-OS layer that pins identical versions.
+#
+# Provenance (ADR-0003): lockfile = true makes mise VERIFY checksums at install
+# (a lockfile without active verification is decorative). The resolved exact
+# versions + checksums are recorded in mise.lock, committed to the repo on first
+# `mise install` (generated on a real machine / in CI, not in this container).
+
+[settings]
+lockfile = true
+
+[tools]
+# --- Language runtimes (mise-managed on every OS; identical versions cross-OS) ---
+node = "lts"
+go = "latest"
+python = "latest"
+
+{{ if ne .chezmoi.os "darwin" -}}
+# --- TUI stack (Linux/WSL via mise; macOS uses Homebrew — see Brewfile) ---
+zellij = "latest"
+helix = "latest"
+yazi = "latest"
+lazygit = "latest"
+starship = "latest"
+{{- end }}
+
+# --- LSP servers (ADR-0002: LSPs are mise tools like any other) ---
+# DEFERRED: added after confirming exact mise registry names on a real machine,
+# to keep the integration-test CI green. Intended set (see helix/languages.toml):
+#   terraform-ls, gopls, bash-language-server, yaml-language-server, marksman.
+
+{{ if eq .profile "work" -}}
+# --- Work-only tools (profile=work) — gated by the machine profile (ADR-0002).
+# Empty by default; fill per work needs, e.g.:
+#   terraform = "latest"
+#   kubectl   = "latest"
+#   aws-vault = "latest"
+{{- end }}

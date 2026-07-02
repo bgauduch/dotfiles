@@ -1,0 +1,33 @@
+# Repo dev tasks — run with `mise run <task>` (or `mise <task>`).
+# mise is already the toolchain manager (ADR-0002), so it is also the task runner;
+# no separate `make` dependency. Tasks only — no tool pins here, so this does not
+# disturb the global toolchain. Not deployed to $HOME (.chezmoiignore).
+# First use in a fresh clone: `mise trust` (mise trusts a new project config once).
+
+[tasks.integration-test]
+description = "Full isolated install in a fresh container (same as CI)"
+run = "docker build -t dotfiles-it -f Dockerfile ."
+
+[tasks.demo-vscode]
+description = "Browser VS Code in the demo sandbox (code-server)"
+run = "./demo/run-vscode.sh"
+
+[tasks.demo-record]
+description = "Record the install as an asciinema cast (demo/install.cast)"
+run = "asciinema rec demo/install.cast --overwrite -c './demo/build.sh --no-cache'"
+
+[tasks.demo-devcontainer]
+description = "Build + start the bare demo devcontainer (validates the Codespaces config)"
+run = "npx -y @devcontainers/cli up --workspace-folder ."
+
+[tasks.hooks]
+description = "Enable repo git hooks (warn-level gitleaks pre-commit, ADR-0007)"
+run = "git config core.hooksPath .githooks"
+
+[tasks.lint]
+description = "Static shell lint (advisory)"
+run = "find . -path ./.git -prune -o -name '*.sh' -print | xargs -r shellcheck -s bash -e SC1091"
+
+[tasks.secrets]
+description = "Secret scan (ADR-0007 level 1)"
+run = 'docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source=/repo --redact --no-banner'

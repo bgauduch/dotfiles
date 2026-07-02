@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# newagent <task> — create an isolated agent workspace (ADR-0004 §5: 1 agent =
+# 1 worktree = 1 branch) and open it in a Zellij tab with the agent layout.
+set -euo pipefail
+
+task="${1:?usage: newagent <task-name>}"
+slug="$(printf '%s' "${task}" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
+[ -n "${slug}" ] || { echo "task name produced an empty slug" >&2; exit 1; }
+
+branch="agent/${slug}"
+root="$(git rev-parse --show-toplevel)"
+wt="${root}-worktrees/${slug}"
+
+git worktree add -b "${branch}" "${wt}"
+echo "==> worktree ${wt} (branch ${branch})"
+
+if command -v zellij >/dev/null 2>&1 && [ -n "${ZELLIJ:-}" ]; then
+  zellij action new-tab --layout agent --name "${slug}" --cwd "${wt}"
+else
+  echo "Not inside Zellij — cd ${wt} and run: zellij --layout agent"
+fi

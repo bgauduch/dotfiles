@@ -1,0 +1,78 @@
+# ~/.zshrc — managed by chezmoi. Ordered sections; order matters.
+# Native Zsh, no plugin-manager (ADR-0003).
+
+# --- 0) History hygiene ---
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_REDUCE_BLANKS INC_APPEND_HISTORY
+
+# --- 1) Exports / PATH (OS-templated) ---
+{{ if eq .chezmoi.os "darwin" -}}
+eval "$(/opt/homebrew/bin/brew shellenv)"
+{{- else -}}
+export PATH="$HOME/.local/bin:$PATH"
+{{- end }}
+export EDITOR="hx"
+export VISUAL="hx"
+
+# --- 2) Tool init ---
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
+# --- 3) Plugins (vendored, SHA-pinned — ADR-0003) ---
+# zsh-syntax-highlighting MUST be sourced LAST or highlighting breaks.
+ZSH_PLUGIN_DIR="$HOME/.local/share/zsh/plugins"
+[ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ] && \
+  source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+[ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ] && \
+  source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
+# --- 4) Prompt — initialised LAST so it overrides any residual theme ---
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi
+
+# --- chezmoi workflow aliases (daily sync; see docs/RUNBOOK.md) ---
+if command -v chezmoi >/dev/null 2>&1; then
+  alias cm='chezmoi'
+  alias cme='chezmoi edit --apply'     # edit a managed file in $EDITOR, then apply
+  alias cma='chezmoi add'              # capture a new/edited target into the source state
+  alias cmra='chezmoi re-add'          # re-add already-managed files changed in place
+  alias cmu='chezmoi update'           # git pull + apply from upstream
+  alias cmd='chezmoi diff'             # preview source -> target changes
+  alias cms='chezmoi status'
+  alias cmcd='chezmoi cd'              # enter the source repo (commit + push via PR there)
+fi
+
+# --- 5) Personal aliases & functions (ported from the pre-chezmoi setup) ---
+# Cross-platform
+alias mise-clean="mise prune --yes && mise cache prune --yes"
+alias mise-update="mise plugins update && mise upgrade && mise-clean"
+alias tffr="terraform fmt --recursive"
+alias tf-clean="find ~/git -type d -name '.terraform' -prune -exec rm -rf {} + && tf-clean-cache"
+alias tf-clean-cache="find ~/.terraform.d/plugins-cache -mindepth 1 -delete"
+alias sso-sandbox="aws sso login --profile sandbox && export AWS_PROFILE='sandbox'"
+alias sso-billing-ro="aws sso login --profile billing-ro && export AWS_PROFILE='billing-ro'"
+alias npm-clean="find ~/git -type d -name 'node_modules' -prune -exec rm -rf {} + && npm cache clean --force"
+alias python-clean="find ~/git -type d \( -name '.venv' -o -name '__pycache__' -o -name '.pytest_cache' -o -name '.mypy_cache' -o -name '*.egg-info' \) -prune -exec rm -rf {} +"
+alias k3d-start="k3d cluster start dev"
+alias k3d-stop="k3d cluster stop dev"
+alias claude-clean='find ~/.local/share/claude/versions -mindepth 1 -maxdepth 1 -type d ! -name "$(basename "$(readlink ~/.local/bin/claude)")" -exec rm -rf {} +'
+alias claude-update="claude update"
+alias claude-obs="cd ~/Obsidian\ Vault && claude"
+alias cch='headroom wrap claude --no-rtk --no-serena'   # Claude Code with token compression
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS-only: softwareupdate, Homebrew, colima-backed Docker
+alias osx-update="softwareupdate -i -a"
+alias brew-clean="brew autoremove && brew cleanup --prune=all"
+alias brew-update="brew update && brew upgrade --no-ask && brew upgrade --cask --no-ask && brew-clean"
+alias docker-start="colima start --cpu 4 --memory 8 --disk 60"  # sized for the local k3d cluster
+alias docker-stop="colima stop"
+alias docker-clean="docker-start && docker system prune --all --force && docker-stop"
+alias k8s-start="docker-start && k3d-start"   # colima start is idempotent → acts as the guard
+alias k8s-stop="k3d-stop && docker-stop"
+alias update="brew-update && mise-update && claude-update"
+alias clean="brew-clean && mise-clean && docker-clean && tf-clean && npm-clean && python-clean && claude-clean"
+{{- end }}

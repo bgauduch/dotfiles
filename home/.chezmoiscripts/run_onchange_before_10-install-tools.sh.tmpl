@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Install the system + dev toolchain. Runs before files are applied, and only
+# re-runs when this script's rendered content changes (run_onchange). Idempotent:
+# every install is guarded so re-runs are safe (ADR-0002).
+set -euo pipefail
+
+osid="{{ .osid }}"
+echo "==> install-tools (osid=${osid})"
+
+have() { command -v "$1" >/dev/null 2>&1; }
+SUDO=""; if [ "$(id -u)" -ne 0 ] && have sudo; then SUDO="sudo"; fi
+
+case "${osid}" in
+  darwin)
+    if ! have brew; then
+      echo "Homebrew absent. Install it first: https://brew.sh" >&2
+      exit 1
+    fi
+    # macOS inventory lives in ~/Brewfile (ADR-0002). brew bundle is idempotent.
+    brew bundle --file="${HOME}/Brewfile"
+    ;;
+
+  linux-*)
+    # 1) System bricks via apt — native Debian trust model (ADR-0002).
+    if have apt-get; then
+      ${SUDO} apt-get update -y
+      # Required system bricks (must succeed).
+      ${SUDO} apt-get install -y zsh git curl unzip build-essential
+      # Nice-to-haves (best-effort; names/availability vary by release).
+      ${SUDO} apt-get install -y ripgrep fd-find git-delta || \
+        echo "warn: some optional apt packages unavailable on this release"
+      # Third-party apt repos (if ever needed) MUST use an individual keyring under
+      # /etc/apt/keyrings + Signed-By:, never the global keyring (ADR-0002 garde-fou).
+      ${SUDO} install -d -m 0755 /etc/apt/keyrings
+    fi
+
+    # 2) mise — cross-OS dev layer. Bootstrap if absent.
+    if ! have mise; then
+      curl -fsSL https://mise.run | sh
+    fi
+    export PATH="${HOME}/.local/bin:${PATH}"
+
+    # 3) WezTerm is NOT installed inside WSL — it runs on the Windows side
+    #    (ADR-0008 seam). On bare-metal Linux it is out of scope here.
+    ;;
+
+  *)
+    echo "Unknown osid: ${osid}" >&2
+    exit 1
+    ;;
+esac
+
+echo "==> install-tools done"

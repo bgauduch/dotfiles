@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Level-1 secret scan (ADR-0007): warn on staged secrets, never block the commit.
+# Bypassable by design — the blocking gate is CI. Enable once per clone: `mise run hooks`.
+set -u
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "[pre-commit] gitleaks not installed — skipping secret scan (CI still blocks)."
+  exit 0
+fi
+
+if ! gitleaks protect --staged --redact --no-banner; then
+  echo "[pre-commit] WARNING: gitleaks flagged potential secrets — commit NOT blocked; CI will."
+fi
+exit 0

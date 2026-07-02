@@ -1,0 +1,8 @@
+// Bare devcontainer / Codespaces: a stock base with nothing installed, so you run the
+// nominal chezmoi one-liner yourself and watch the env build from zero — exactly like a
+// real machine. No baked source, no source-dir wiring. See demo/README.md.
+{
+  "name": "dotfiles-demo",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "postAttachCommand": "echo 'Bare box. From zero → chezmoi init --apply bgauduch/dotfiles (installer: get.chezmoi.io). See demo/README.md.'"
+}

@@ -1,0 +1,16 @@
+# Bare browser VS Code (code-server) for the from-zero demo: plain Debian + the
+# prerequisites the chezmoi one-liner needs, NO baked source. Run ./demo/run-vscode.sh,
+# open http://localhost:8080, then run the one-liner in the integrated terminal and watch
+# the env build from an empty machine.
+FROM debian:bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git curl ca-certificates sudo \
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd -m -s /bin/bash dev \
+ && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
+RUN curl -fsSL https://code-server.dev/install.sh | sh
+USER dev
+WORKDIR /home/dev
+EXPOSE 8080
+# --auth none: throwaway, local-only demo container. Never expose this publicly.
+CMD ["code-server", "--bind-addr", "0.0.0.0:8080", "--auth", "none", "/home/dev"]
