@@ -13,6 +13,12 @@
 lockfile = true
 
 [tools]
+# --- Dotfiles manager (mise-managed so `chezmoi` stays on PATH after bootstrap) ---
+# The get.chezmoi.io one-liner only installs a throwaway bootstrap binary to run
+# `init --apply`; declaring it here (aqua backend, checksummed) makes the persistent
+# `chezmoi` a mise shim on PATH, so `chezmoi edit`/`apply` work post-install.
+"aqua:twpayne/chezmoi" = "2.70.5"
+
 # --- Language runtimes (mise-managed on every OS; identical versions cross-OS) ---
 # Pinned explicit versions (ADR-0003); bump deliberately via `mise latest <tool>`.
 node = "24.18.0"
