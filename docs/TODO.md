@@ -14,6 +14,9 @@ Demo-prep + fixes land on branch `demo/live`.
 - [x] zsh set as default login shell post-install - idempotent, non-blocking chezmoi script. `d8692a5`
 - [x] `chezmoi` declared as a managed mise tool - fixes `command not found` post-bootstrap, which
   broke the demo edit -> commit loop. `9977a5d`
+- [x] Contextual editor in zsh: `code --wait` inside a VS Code/code-server terminal
+  (`$TERM_PROGRAM=vscode`), Helix otherwise - `chezmoi edit`/`git commit` open in the browser
+  editor during the demo, terminal Helix elsewhere.
 
 ## Backlog
 
