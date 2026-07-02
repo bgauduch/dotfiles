@@ -19,6 +19,16 @@ node = "24.18.0"
 go = "1.26.4"
 python = "3.14.6"
 
+# --- Cloud / IaC tooling (mise-managed on every OS, all profiles - transverse) ---
+# terraform is pinned via the explicit aqua backend on purpose: the bare `terraform`
+# name resolves to the asdf backend, which locks a URL WITHOUT a checksum; aqua ships
+# per-platform sha256 so lockfile = true verification (ADR-0003) actually bites.
+"aqua:hashicorp/terraform" = "1.15.7"
+# awscli: AWS distributes CLI v2 as .pkg/.zip installers with NO upstream sha256, so
+# this is the one tool mise cannot checksum-verify (URL + version pin only): a
+# documented exception to ADR-0003, not an oversight. macOS/Linux only (no Windows).
+awscli = "2.35.14"
+
 {{ if ne .chezmoi.os "darwin" -}}
 # --- TUI stack (Linux/WSL via mise; macOS uses Homebrew — see Brewfile) ---
 zellij = "0.44.3"
@@ -36,7 +46,6 @@ starship = "1.26.0"
 {{ if eq .profile "work" -}}
 # --- Work-only tools (profile=work) — gated by the machine profile (ADR-0002).
 # Empty by default; fill per work needs, e.g.:
-#   terraform = "latest"
 #   kubectl   = "latest"
 #   aws-vault = "latest"
 {{- end }}
