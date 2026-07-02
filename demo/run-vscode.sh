@@ -8,4 +8,4 @@ img="dotfiles-demo-vscode"
 
 docker build -t "${img}" -f "${repo_root}/demo/Dockerfile.vscode" "${repo_root}/demo"
 echo "code-server → http://localhost:8080  (Ctrl-C stops the --rm container)"
-exec docker run --rm -it -p 8080:8080 "${img}"
+exec docker run --rm -it -p 127.0.0.1:8080:8080 "${img}"
