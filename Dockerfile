@@ -3,7 +3,7 @@
 # bootstrap + dev tools + configs + zsh plugins), then asserts the core binaries and runs
 # doctor.sh — a successful build == the install works end to end (this is the CI
 # integration test; reproduce with `mise run integration-test`).
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df
 
 ARG USER=dev
 RUN apt-get update \
