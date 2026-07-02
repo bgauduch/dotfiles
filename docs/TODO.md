@@ -14,9 +14,11 @@ Demo-prep + fixes land on branch `demo/live`.
 - [x] zsh set as default login shell post-install - idempotent, non-blocking chezmoi script. `d8692a5`
 - [x] `chezmoi` declared as a managed mise tool - fixes `command not found` post-bootstrap, which
   broke the demo edit -> commit loop. `9977a5d`
-- [x] Contextual editor in zsh: `code --wait` inside a VS Code/code-server terminal
-  (`$TERM_PROGRAM=vscode`), Helix otherwise - `chezmoi edit`/`git commit` open in the browser
-  editor during the demo, terminal Helix elsewhere.
+- [x] Contextual editor in zsh: `code --wait` when a real `code` binary is on PATH inside a
+  VS Code terminal (`$TERM_PROGRAM=vscode` + `whence -p code`), Helix otherwise. Guard uses
+  `whence -p` because bare code-server injects `code` as a shell FUNCTION that chezmoi's execve
+  can't run. The demo container symlinks the bundled VS Code remote CLI onto PATH as `code`
+  (`demo/Dockerfile.vscode`), so `chezmoi edit`/`git commit` open in the running browser window.
 
 ## Backlog
 

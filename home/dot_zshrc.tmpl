@@ -13,10 +13,13 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 {{- else -}}
 export PATH="$HOME/.local/bin:$PATH"
 {{- end }}
-# Editor is contextual: VS Code/code-server when this shell runs inside its integrated
-# terminal ($TERM_PROGRAM=vscode), Helix otherwise. `code --wait` blocks until the tab
-# closes, which `chezmoi edit` and `git commit` require to know editing is done.
-if [ "$TERM_PROGRAM" = vscode ] && command -v code >/dev/null 2>&1; then
+# Editor is contextual: the real `code` CLI when this shell runs inside a VS Code terminal
+# that ships one (Codespaces, desktop Remote, or the demo container which symlinks it - see
+# demo/Dockerfile.vscode), Helix otherwise. `code --wait` blocks until the tab closes, which
+# `chezmoi edit` / `git commit` require. `whence -p` matches only a PATH executable: bare
+# code-server injects `code` as a shell FUNCTION (no binary) that execve can't run, so
+# without a real `code` on PATH we fall back to terminal Helix.
+if [ "$TERM_PROGRAM" = vscode ] && whence -p code >/dev/null 2>&1; then
   export EDITOR="code --wait" VISUAL="code --wait"
 else
   export EDITOR="hx" VISUAL="hx"

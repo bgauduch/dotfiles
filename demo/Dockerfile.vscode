@@ -9,6 +9,13 @@ RUN apt-get update \
  && useradd -m -s /bin/bash dev \
  && echo "dev ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/dev
 RUN curl -fsSL https://code-server.dev/install.sh | sh
+# Expose a real `code` CLI. code-server bundles VS Code's remote CLI but only injects `code`
+# as a shell FUNCTION in the integrated terminal, which chezmoi/git cannot exec. Symlinking
+# the bundled remote CLI onto PATH gives a real binary: inside the integrated terminal
+# ($VSCODE_IPC_HOOK_CLI set) `code --wait <file>` opens in the running browser window and
+# blocks until the tab closes - exactly what `chezmoi edit` / `git commit` need. The zshrc
+# editor guard (whence -p code) then picks it up automatically.
+RUN ln -sf /usr/lib/code-server/lib/vscode/bin/remote-cli/code-server /usr/local/bin/code
 USER dev
 WORKDIR /home/dev
 EXPOSE 8080
