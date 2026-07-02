@@ -1,0 +1,10 @@
+# Cross-OS dotfiles must stay LF — chezmoi applies them on macOS and WSL2/Debian.
+* text=auto eol=lf
+
+*.sh    text eol=lf
+*.tmpl  text eol=lf
+*.lock  text eol=lf
+Dockerfile text eol=lf
+
+*.png binary
+*.ico binary

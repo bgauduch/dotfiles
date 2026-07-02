@@ -1,0 +1,20 @@
+{{/* OS-conditional ignores. Differences are handled by templates, not duplicate
+     files — this only drops whole files that make no sense on a given OS.
+     Repo-management files (README, docs, .github, Dockerfile, mise.toml …) live
+     ABOVE the source root (see .chezmoiroot) so chezmoi never sees them. */}}
+
+{{/* Brewfile is macOS-only (ADR-0002: no Homebrew on Linux/WSL). */}}
+{{- if ne .chezmoi.os "darwin" }}
+Brewfile
+{{- end }}
+
+{{/* On WSL2, WezTerm runs on the Windows side, not inside the Linux $HOME
+     (ADR-0008 seam). Don't render the emulator config into the WSL home. */}}
+{{- if eq .osid "linux-wsl" }}
+.config/wezterm
+{{- end }}
+
+{{/* Lockfiles live in the source state (read by the install scripts) but are not
+     dotfiles to deploy into $HOME. */}}
+zsh-plugins.lock
+mise.lock

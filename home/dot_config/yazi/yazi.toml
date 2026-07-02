@@ -1,0 +1,26 @@
+# Yazi — mouse-friendly file-tree (ADR-0008), used as a floating
+# Zellij pane (toggle Alt+e). Opening a file launches Helix.
+#
+# Known limitation: Yazi starts in the cwd it was
+# launched from, and opening via $EDITOR spawns Helix inside the floating pane
+# rather than reusing the main editor pane. A tighter Zellij hand-off can be
+# layered later; this keeps the bridge simple and predictable.
+
+[mgr]
+show_hidden = true
+sort_by = "natural"
+sort_dir_first = true
+linemode = "size"
+
+[opener]
+edit = [
+  { run = 'hx "$@"', desc = "Edit in Helix", block = true, for = "unix" },
+]
+
+[open]
+rules = [
+  { name = "*/", use = "edit" },
+  { mime = "text/*", use = "edit" },
+  { mime = "application/json", use = "edit" },
+  { mime = "*", use = "edit" },
+]

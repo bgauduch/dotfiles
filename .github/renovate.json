@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Scoped to GitHub Actions + Dockerfile only. zsh plugins (zsh-plugins.lock)",
+    "and mise tools are intentionally NOT managed here: their bumps follow the",
+    "manual diff/soak/pin ritual of ADR-0003. Renovate PRs are reviewed and gated",
+    "by the isolated-install integration test before merge."
+  ],
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "enabledManagers": ["github-actions", "dockerfile"],
+  "labels": ["dependencies"],
+  "schedule": ["before 6am on monday"],
+  "prConcurrentLimit": 5,
+  "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    }
+  ]
+}

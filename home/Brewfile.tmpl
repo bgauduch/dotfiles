@@ -1,0 +1,23 @@
+{{- /* macOS tool inventory (ADR-0002). Deployed to ~/Brewfile on darwin only
+       (.chezmoiignore drops it elsewhere). Applied idempotently via `brew bundle`. */ -}}
+# System bricks
+brew "mise"
+brew "zsh"
+brew "git"
+brew "curl"
+brew "ripgrep"
+brew "fd"
+brew "git-delta"
+
+# TUI stack (macOS source of truth = brew; Linux/WSL gets these from mise)
+brew "starship"
+brew "zellij"
+brew "helix"
+brew "yazi"
+brew "lazygit"
+
+# Emulator + font (GUI — macOS native; on WSL2 WezTerm is installed on Windows)
+cask "wezterm"
+cask "font-hack-nerd-font"
+# Editor — backup while transitioning to the TUI stack
+cask "visual-studio-code"

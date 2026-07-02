@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# delagent <task> [--force] — tear down an agent worktree created by newagent.
+set -euo pipefail
+
+slug="${1:?usage: delagent <task-name> [--force]}"
+force="${2:-}"
+root="$(git rev-parse --show-toplevel)"
+wt="${root}-worktrees/${slug}"
+
+if [ "${force}" = "--force" ]; then
+  git worktree remove --force "${wt}"
+  git branch -D "agent/${slug}" 2>/dev/null || true
+else
+  git worktree remove "${wt}"
+  git branch -d "agent/${slug}" 2>/dev/null \
+    || echo "branch agent/${slug} not fully merged — rerun with --force to drop it"
+fi
+echo "==> removed worktree ${wt}"

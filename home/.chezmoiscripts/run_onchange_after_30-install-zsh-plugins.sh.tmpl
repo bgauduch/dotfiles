@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Install/verify vendored zsh plugins after files are applied. run_onchange so it
+# re-runs when the lockfile changes; the bin script itself is idempotent.
+# Hash of zsh-plugins.lock to retrigger on bump: {{ include "zsh-plugins.lock" | sha256sum }}
+set -euo pipefail
+# Pass the lockfile path explicitly: calling `chezmoi source-path` here would
+# deadlock on the persistent-state lock held by the running `chezmoi apply`.
+export ZSH_PLUGINS_LOCK="{{ .chezmoi.sourceDir }}/zsh-plugins.lock"
+if [ -x "${HOME}/.local/bin/install-zsh-plugins.sh" ]; then
+  "${HOME}/.local/bin/install-zsh-plugins.sh"
+else
+  echo "install-zsh-plugins.sh not found on PATH yet — skipping" >&2
+fi

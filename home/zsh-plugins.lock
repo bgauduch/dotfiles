@@ -1,0 +1,7 @@
+# Vendored zsh plugins — pinned per ADR-0003 (confiance & supply-chain).
+# Columns: name  url  sha  tag  review_date
+# SHA "PIN_ME" = not yet pinned: the first `install-zsh-plugins.sh` run checks out
+# the tag (TOFU), prints the resolved SHA, and you commit it here (RUNBOOK bump
+# ritual). After pinning, a drift between HEAD and this SHA hard-stops the install.
+zsh-autosuggestions https://github.com/zsh-users/zsh-autosuggestions e52ee8ca55bcc56a17c828767a3f98f22a68d4eb v0.7.1 2026-06-28
+zsh-syntax-highlighting https://github.com/zsh-users/zsh-syntax-highlighting db085e4661f6aafd24e5acb5b2e17e4dd5dddf3e 0.8.0 2026-06-28

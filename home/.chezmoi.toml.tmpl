@@ -1,0 +1,41 @@
+{{/* chezmoi init config — prompts + derived data. Evaluated once at `chezmoi init`.
+     CHEZMOI_NAME / CHEZMOI_EMAIL env vars override the prompt (used by CI / the
+     isolated-install test); interactive machines are prompted as usual. */}}
+{{- $name := "" -}}
+{{- if env "CHEZMOI_NAME" -}}
+{{-   $name = env "CHEZMOI_NAME" -}}
+{{- else -}}
+{{-   $name = promptStringOnce . "name" "Full name (git author)" -}}
+{{- end -}}
+{{- $email := "" -}}
+{{- if env "CHEZMOI_EMAIL" -}}
+{{-   $email = env "CHEZMOI_EMAIL" -}}
+{{- else -}}
+{{-   $email = promptStringOnce . "email" "Email (git author)" -}}
+{{- end -}}
+
+{{/* Machine profile (personal | work) — gate machine-specific tools/config with
+     {{ if eq .profile "work" }}…{{ end }}. CHEZMOI_PROFILE overrides the prompt (CI). */}}
+{{- $profile := "" -}}
+{{- if env "CHEZMOI_PROFILE" -}}
+{{-   $profile = env "CHEZMOI_PROFILE" -}}
+{{- else -}}
+{{-   $profile = promptChoiceOnce . "profile" "Machine profile" (list "personal" "work") -}}
+{{- end -}}
+
+{{/* Derive a single OS identifier used by every template and script.
+     osid ∈ darwin | linux-wsl | linux-<distro> (e.g. linux-debian, linux-ubuntu). */}}
+{{- $osid := .chezmoi.os -}}
+{{- if eq .chezmoi.os "linux" -}}
+{{-   if (.chezmoi.kernel.osrelease | lower | contains "microsoft") -}}
+{{-     $osid = "linux-wsl" -}}
+{{-   else -}}
+{{-     $osid = printf "linux-%s" (.chezmoi.osRelease.id | default "unknown") -}}
+{{-   end -}}
+{{- end -}}
+
+[data]
+    name = {{ $name | quote }}
+    email = {{ $email | quote }}
+    osid = {{ $osid | quote }}
+    profile = {{ $profile | quote }}

@@ -1,0 +1,5 @@
+# Generated demo recording (regenerate with: mise run demo-record)
+demo/install.cast
+
+# chezmoi binary leaked from the devcontainer bind-mount (installer default ./bin)
+bin/

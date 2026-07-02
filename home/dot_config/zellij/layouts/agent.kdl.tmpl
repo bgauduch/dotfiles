@@ -1,0 +1,28 @@
+// Multi-agent layout reproducing the cmux workflow:
+//   1 tab = 1 task = 1 git worktree = 1 agent.
+// Main editor (Helix), a side column with Lazygit + a Claude Code agent, and a
+// floating Yazi file-tree. Launched by `newagent` (dot_local/bin) per worktree.
+layout {
+    tab name="agent" focus=true {
+        pane split_direction="vertical" {
+            // Editor — the main working pane.
+            pane command="hx" size="70%" {
+                args "."
+            }
+            // Side column: git diff on top, agent at the bottom.
+            pane split_direction="horizontal" size="30%" {
+                pane command="lazygit"
+                pane command="claude"
+            }
+        }
+        // Floating file-tree (toggle with Alt+e); opens selections into Helix.
+        floating_panes {
+            pane command="yazi" {
+                width "80%"
+                height "80%"
+                x "10%"
+                y "10%"
+            }
+        }
+    }
+}
