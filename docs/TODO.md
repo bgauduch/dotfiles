@@ -93,6 +93,43 @@ Demo-prep + fixes land on branch `demo/live`.
   lines (personal == work functionally). Wire real per-profile config and give `.profile` an
   observable effect for the demo. Relates to the AWS profile item.
 
+### daily-usability (aliases ported, tool inventory not)
+Root pattern found by a transverse audit: the personal aliases were "ported from the pre-chezmoi
+setup" (`dot_zshrc.tmpl` section 5) but the tools they drive were NOT added to the inventory (mise
+config / Brewfile). So a fresh machine is demo-complete but not daily-usable. None of these are
+ADR-deferred - they fell through the alias port. Decide per tool: transverse vs work-profile (ties
+into the profile-configs item).
+- [ ] **Container + k8s stack unusable (colima, docker, k3d, kubectl).** `docker-start/stop/clean`,
+  `k3d-start/stop`, `k8s-start/stop` (`dot_zshrc.tmpl` ~L75-92) all call binaries nothing installs on
+  the `personal` profile. Worse, the aggregate `clean` alias chains `docker-clean` -> `colima start`,
+  so `clean` fails wholesale on a box without colima. Declare the stack (mise and/or Brewfile) and
+  decide transverse vs work-gated. Highest daily-use surface. NEW.
+- [ ] **Bitwarden CLI `bw` not installed (bootstrap-blocking).** RUNBOOK step 1 + ADR-0005 make
+  `bw unlock` a precondition of the first `chezmoi apply` (bitwarden templates render at apply), but
+  `bw` is in neither Brewfile nor mise, and `doctor.sh` doesn't check it. A fresh init with any
+  `{{ (bitwarden ...) }}` template fails. Declare `bw` + add a doctor check. NEW.
+- [ ] **Terraform plugin cache never enabled.** `tf-clean-cache` cleans `~/.terraform.d/plugins-cache`
+  but no `~/.terraformrc` / `TF_PLUGIN_CACHE_DIR` exists -> Terraform never caches there (re-downloads
+  providers every init), and the alias path (`plugins-cache`) mismatches the convention
+  (`plugin-cache`). Rework: `home/dot_terraformrc.tmpl` with `plugin_cache_dir =
+  "$HOME/.terraform.d/plugin-cache"` + `disable_checkpoint = true`; create the dir via a chezmoi
+  `.keep`; align the alias path. Transverse. NEW.
+- [ ] **`granted` not installed.** RUNBOOK/ADR-0005 blessed AWS SSO alt; absent. Declare or drop the
+  reference. NEW.
+- [ ] **SSH config unmanaged.** ADR-0005 calls SSH keys a central asset, yet there is no
+  chezmoi-managed `~/.ssh/config`. Decide what (if any) hosts/config to template (private keys stay
+  out of git). NEW.
+- [ ] **`headroom` (cch alias) not installed.** `cch='headroom wrap claude ...'` references an
+  out-of-band binary. Declare it or document as an external prerequisite. NEW, low.
+
+### known-deferred (intentional ADR decisions, not gaps)
+Listed for visibility - each is a conscious "decided, not built", not an oversight:
+- Level-2 supply-chain gates (ADR-0003/0006/0007): tree-hash cross-witness, soak automation, blocking
+  ADR-lint. Triggered by a criterion, not now.
+- chezmoi auto-commit/auto-push (ADR-0010): deferred.
+- OS agent sandbox (ADR-0004): Seatbelt / bwrap+socat aspirational; `doctor.sh` only WARNs.
+- LSP block (mise config): deferred pending registry-name confirmation - also tracked under enhancement.
+
 ## Demo cold-start (web VS Code)
 - One-liner: `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply bgauduch/dotfiles --branch demo/live`
 - Deterministic (skip prompts): prefix with
