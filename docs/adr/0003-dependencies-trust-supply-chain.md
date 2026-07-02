@@ -66,6 +66,10 @@ At level 1: pin + lock + manual review at bump + `gitleaks` (ADR-0007).
 - **Transitive** dependencies of MCP servers and mise binaries not pinned byte-for-byte (→ Nix,
   ADR-0006 level 3).
 - Manual bump review: an obfuscated payload can slip through (accepted limit of level 1).
+- **Checksum-less backends (TOFU)**: some upstreams publish no per-artifact hash (e.g. AWS CLI v2,
+  shipped as `.pkg`/`.zip` installers). `mise.lock` cannot pre-seed a checksum for these; mise
+  records a trust-on-first-use one at install, so the *first* download is unverified against
+  upstream. Accepted: the brew/apt alternatives are no stronger, and version+URL stay pinned.
 
 ## Review / expiry
 Annual review, or immediate upon adding a dependency class or crossing the level-2 switchover

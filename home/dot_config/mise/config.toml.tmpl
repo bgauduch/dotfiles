@@ -24,9 +24,11 @@ python = "3.14.6"
 # name resolves to the asdf backend, which locks a URL WITHOUT a checksum; aqua ships
 # per-platform sha256 so lockfile = true verification (ADR-0003) actually bites.
 "aqua:hashicorp/terraform" = "1.15.7"
-# awscli: AWS distributes CLI v2 as .pkg/.zip installers with NO upstream sha256, so
-# this is the one tool mise cannot checksum-verify (URL + version pin only): a
-# documented exception to ADR-0003, not an oversight. macOS/Linux only (no Windows).
+# awscli: AWS ships CLI v2 as .pkg/.zip installers with NO upstream sha256, so the
+# lock cannot pre-seed a checksum; mise records a trust-on-first-use one at install.
+# This tool is TOFU, not pre-verified (documented ADR-0003 residual, not an oversight).
+# Single-source (ADR-0002): mise owns it, so it must NOT also be a brew formula.
+# macOS/Linux only (no Windows package).
 awscli = "2.35.14"
 
 {{ if ne .chezmoi.os "darwin" -}}
