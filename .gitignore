@@ -3,3 +3,8 @@ demo/install.cast
 
 # chezmoi binary leaked from the devcontainer bind-mount (installer default ./bin)
 bin/
+
+# OS cruft, local secrets, ad-hoc worktrees
+.DS_Store
+*.env
+*-worktrees/
