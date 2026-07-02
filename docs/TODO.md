@@ -30,6 +30,48 @@ Demo-prep + fixes land on branch `demo/live`.
   gate the personal profiles + aliases behind `{{ if eq .profile "personal" }}`; emit SSO blocks
   only, zero static key. Track as a short amendment to ADR-0005. Refs: ADR-0005, ADR-0002,
   THREAT-MODEL #10.
+- [ ] **`mise.lock` two-writer / multi-machine / multi-OS / multi-profile lifecycle.** The lock is
+  both a committed reproducibility artifact and a file `mise` mutates at runtime (`lockfile=true`:
+  canonical re-sort + trust-on-first-use checksums, e.g. awscli `blake3:`, computed per install
+  platform). Today chezmoi also manages/deploys it, so the two writers collide and `chezmoi diff`
+  shows churn unrelated to the edit. Note `mise.lock` IS cross-platform by design (one file, all 7
+  platforms) - per-platform lock files are NOT the answer; what actually diverges is the TOFU
+  checksums (per install OS) and, under profile gating, the tool set.
+
+  Root sub-defect: `.chezmoiignore` tries to exclude the lock with a bare `mise.lock`, but bare
+  patterns match only the target root; the real target is nested (`.config/mise/mise.lock`), so the
+  ignore never fires (confirmed: `chezmoi managed` lists it, `chezmoi ignored` does not). Needs
+  `**/mise.lock` or the full path - OR the deploy strategy below.
+
+  **Decision (leaning: Solution A).**
+  - **A - committed checksummed lock, `create_` seed + deterministic regen (preferred).** Source
+    file becomes `create_mise.lock`: chezmoi seeds it on a fresh machine (reproducible first install,
+    checksums verified, ADR-0003), then never touches it again -> `mise` owns the runtime copy, zero
+    chezmoi churn. The committed lock is regenerated **deterministically** with `mise lock -p <all
+    platforms>` (machine-agnostic: checksums come from registries, no install needed), NOT captured
+    from a machine's mutated home lock. Commit a **superset** lock (render config with
+    `profile=work` if work is a superset of personal) so one lock covers both profiles.
+  - **B - versions-only (simpler, weaker doctrine).** Do not commit/deploy the lock (fix the ignore
+    to `**/mise.lock`). Versions stay pinned in `config.toml` (committed) so version reproducibility
+    holds, but no shared committed checksums -> ADR-0003 weakens to "verified on each machine after
+    first TOFU".
+  - The arbitrage is repro-of-shared-checksums (A) vs operational simplicity (B). For a security
+    portfolio repo, A is the fit and mirrors the existing `zsh-plugins.lock` drift-stop pattern.
+
+  **Lifecycle under A (adding e.g. `rust`):** (1) `chezmoi edit ~/.config/mise/config.toml` -> pin
+  an explicit version; (2) `chezmoi cd`; (3) `mise run lock` (repo task to build: renders the
+  superset config + `mise lock -p <all>` -> writes `create_mise.lock`) = the sync step; (4) commit
+  `config.toml.tmpl` + `create_mise.lock` together, push; (5) back home, `chezmoi apply` +
+  `mise install` (local only; home lock mutates but `create_` makes chezmoi ignore it). Install is
+  **local**; the committed lock is **regenerated**, never scraped from the local install.
+
+  **Enforcement:** a CI check `mise run lock --check` (regenerate, diff, fail if the committed lock
+  is stale vs config) - same mechanic as the zsh-plugins drift-stop (ADR-0007), turning "keep in
+  sync" from manual discipline into a gate.
+
+  Implementation deferred: (a) rename source lock to `create_mise.lock`; (b) add the `mise run lock`
+  task + superset render; (c) add the CI drift-check; (d) fix/repurpose the `.chezmoiignore` entry.
+  Refs: ADR-0003 (supply-chain), ADR-0007 (recurring audit CI).
 
 ### tech-debt
 - [ ] **`.gitignore` `bin/` -> `/bin/`.** The unanchored `bin/` also matches `home/dot_local/bin/`,
