@@ -59,6 +59,12 @@ fi
 # Cross-platform
 alias mise-clean="mise prune --yes && mise cache prune --yes"
 alias mise-update="mise plugins update && mise upgrade && mise-clean"
+# Git shortcuts (the handful actually used; run git directly for the rest).
+alias ga='git add'
+alias gcmsg='git commit -m'
+alias gf='git fetch'
+alias gp='git push'
+alias gpsup='git push --set-upstream origin "$(git branch --show-current)"'
 alias tffr="terraform fmt --recursive"
 alias tf-clean="find ~/git -type d -name '.terraform' -prune -exec rm -rf {} + && tf-clean-cache"
 alias tf-clean-cache="find ~/.terraform.d/plugins-cache -mindepth 1 -delete"

@@ -19,6 +19,11 @@ Demo-prep + fixes land on branch `demo/live`.
   `whence -p` because bare code-server injects `code` as a shell FUNCTION that chezmoi's execve
   can't run. The demo container symlinks the bundled VS Code remote CLI onto PATH as `code`
   (`demo/Dockerfile.vscode`), so `chezmoi edit`/`git commit` open in the running browser window.
+- [x] Git identity gap closed: `home/dot_gitconfig.tmpl` writes `[user] name/email` from the
+  chezmoi init prompts (`.name`/`.email`) - previously the prompts were captured but nothing
+  wrote `~/.gitconfig`, so `git commit` failed with "Author identity unknown".
+- [x] Git shortcut aliases (minimal, actually-used set: `ga`, `gcmsg`, `gf`, `gp`, `gpsup`) added
+  transverse to `dot_zshrc.tmpl`.
 
 ## Backlog
 
