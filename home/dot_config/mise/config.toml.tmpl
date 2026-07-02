@@ -14,17 +14,18 @@ lockfile = true
 
 [tools]
 # --- Language runtimes (mise-managed on every OS; identical versions cross-OS) ---
-node = "lts"
-go = "latest"
-python = "latest"
+# Pinned explicit versions (ADR-0003); bump deliberately via `mise latest <tool>`.
+node = "24.18.0"
+go = "1.26.4"
+python = "3.14.6"
 
 {{ if ne .chezmoi.os "darwin" -}}
 # --- TUI stack (Linux/WSL via mise; macOS uses Homebrew — see Brewfile) ---
-zellij = "latest"
-helix = "latest"
-yazi = "latest"
-lazygit = "latest"
-starship = "latest"
+zellij = "0.44.3"
+helix = "25.07.1"
+yazi = "26.5.6"
+lazygit = "0.62.2"
+starship = "1.26.0"
 {{- end }}
 
 # --- LSP servers (ADR-0002: LSPs are mise tools like any other) ---
