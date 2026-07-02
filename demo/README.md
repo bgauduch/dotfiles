@@ -1,47 +1,47 @@
 # demo/ — from-zero live demo
 
-Rejoue "machine vide → mon env complet" dans un VS Code navigateur jetable, puis montre
-la boucle edit → commit. Une commande :
+Replays "empty machine → my full env" in a throwaway browser VS Code, then shows the
+edit → commit loop. One command:
 
 ```sh
-./demo/run-vscode.sh        # box vierge + code-server → http://localhost:8080
+./demo/run-vscode.sh        # bare box + code-server → http://localhost:8080
 ```
-Tu arrives dans un VS Code (navigateur) vide, terminal intégré. Rien n'est installé.
+You land in an empty (browser) VS Code with an integrated terminal. Nothing is installed.
 
 > Not deployed by chezmoi: this folder sits above the source state (`home/`, via
 > `.chezmoiroot`), so chezmoi never sees it.
 
-## La démo
+## The demo
 
-**1. From zero** — dans le terminal intégré :
+**1. From zero** — in the integrated terminal:
 ```sh
 sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply bgauduch/dotfiles
-exec zsh          # $HOME se remplit : prompt starship, outils, doctor.sh vert
+exec zsh          # $HOME fills up: starship prompt, tools, doctor.sh green
 ```
-chezmoi demande nom/email/profil (1er run), puis build tout. (Tester une branche avant
-qu'elle soit sur main : `--branch <nom>`.)
+chezmoi asks for name/email/profile (first run), then builds everything. (To test a branch
+before it lands on main: `--branch <name>`.)
 
-**2. Boucle edit → commit** — le point clé : tu n'édites pas `$HOME` en direct, tu édites
-la source et chezmoi applique :
+**2. Edit → commit loop** — the key point: you don't edit `$HOME` directly, you edit the
+source and chezmoi applies:
 ```sh
-chezmoi edit ~/.zshrc   # ouvre la SOURCE (home/dot_zshrc.tmpl), PAS ~/.zshrc
-chezmoi diff            # delta source → cible
-chezmoi apply           # écrit dans $HOME
-chezmoi cd              # → ~/.local/share/chezmoi (vrai clone git) ; commit + push
+chezmoi edit ~/.zshrc   # opens the SOURCE (home/dot_zshrc.tmpl), NOT ~/.zshrc
+chezmoi diff            # source → target delta
+chezmoi apply           # writes into $HOME
+chezmoi cd              # → ~/.local/share/chezmoi (real git clone); commit + push
 ```
-`init` a cloné le dépôt dans `~/.local/share/chezmoi` (vrai `.git` + `origin`), donc
-`chezmoi cd` + `git push` renvoie ton changement au dépôt. Pas de copie fantôme.
+`init` cloned the repo into `~/.local/share/chezmoi` (real `.git` + `origin`), so
+`chezmoi cd` + `git push` sends your change back to the repo. No phantom copy.
 
 ## Reset
-Chaque run est un container `--rm` neuf — relance `./demo/run-vscode.sh`.
+Every run is a fresh `--rm` container — just re-run `./demo/run-vscode.sh`.
 
-## Aussi dispo
-- `./demo/run.sh` — l'env prêt dans un terminal simple (sans navigateur), pour explorer ;
-  dedans, `bash ~/.local/share/chezmoi/demo/steps.sh` déroule un tour guidé (templates,
-  profils, scripts, secrets, avec liens doc).
-- `mise run demo-record` — enregistre l'install en cast asciinema (optionnel).
-- Codespaces : `.devcontainer/` donne la même box vierge dans le cloud (navigateur), avec
-  l'auth GitHub → `git push` marche direct.
+## Also available
+- `./demo/run.sh` — the ready env in a plain terminal (no browser), to explore; inside it,
+  `bash ~/.local/share/chezmoi/demo/steps.sh` runs a guided tour (templates, profiles,
+  scripts, secrets, with doc links).
+- `mise run demo-record` — records the install as an asciinema cast (optional).
+- Codespaces: `.devcontainer/` gives the same bare box in the cloud (browser), with GitHub
+  auth → `git push` works directly.
 
-## Prérequis
-Docker. Le one-liner exige le dépôt public (ou, en Codespaces, l'auth GitHub).
+## Prerequisites
+Docker. The one-liner requires the repo to be public (or, in Codespaces, GitHub auth).
