@@ -6,11 +6,13 @@
 
 ## Bootstrapping a fresh machine (mandatory order)
 1. **Secrets first** (ADR-0005): `bw login` + `bw unlock`, export the `BW_SESSION` session.
-2. **AWS** (ADR-0005): `aws sso login` (or `granted`) per profile; no static key on disk.
-3. **chezmoi**: `sh -c "$(curl -fsLS get.chezmoi.io)"` then `chezmoi init --apply <repo>`.
+   chezmoi renders Bitwarden secrets into templates at apply, so the session must exist first.
+2. **chezmoi**: `sh -c "$(curl -fsLS get.chezmoi.io)"` then `chezmoi init --apply <repo>`.
    - Root of trust: machine assumed clean at the initial bootstrap (TOFU assumed, cf.
      THREAT-MODEL § Assumptions). No checksum to compare here — the repo, the source of the pins, is
      not cloned yet. Pinning/checksums apply to **later bumps** (ADR-0003).
+3. **AWS** (ADR-0005): `aws sso login` (or `granted`) per profile; no static key on disk. The
+   `aws` CLI itself is installed by step 2 (mise, transverse — ADR-0002), so auth comes after apply.
 4. **Smoke test**: `doctor.sh` (see below).
 
 ## Daily flow (edit / update / sync / conflicts)

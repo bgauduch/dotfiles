@@ -37,7 +37,7 @@ the whole env in a container — terminal, browser VS Code, or Codespaces. See
 [`demo/`](demo/README.md).
 
 Cold-start order matters (secrets first) — see [`docs/RUNBOOK.md`](docs/RUNBOOK.md):
-unlock Bitwarden → `aws sso login` → `chezmoi init --apply` → `doctor.sh`.
+unlock Bitwarden → `chezmoi init --apply` → `aws sso login` → `doctor.sh`.
 Day-to-day edit/update/sync flow is in the [RUNBOOK](docs/RUNBOOK.md#daily-flow-edit--update--sync--conflicts).
 
 ## Key bindings (Zellij, VS Code-like)

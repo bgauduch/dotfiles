@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Make zsh the default login shell. Runs after the toolchain is installed (zsh exists
+# by now). Idempotent (skips if already zsh) and NON-BLOCKING: it never prompts for a
+# password mid-apply. It auto-applies only when it can do so without a prompt (root, or
+# passwordless sudo like the demo box); otherwise it prints the one-time command to run
+# by hand. The change takes effect on the NEXT login; in the current shell use `exec zsh`.
+set -uo pipefail
+
+zsh_path="$(command -v zsh || true)"
+[ -z "$zsh_path" ] && { echo "default-shell: zsh absent, skipping"; exit 0; }
+command -v chsh >/dev/null 2>&1 || { echo "default-shell: chsh absent, skipping"; exit 0; }
+
+user="$(id -un)"
+# Current login shell — cross-OS: getent (Linux) vs dscl (macOS).
+if command -v getent >/dev/null 2>&1; then
+  cur="$(getent passwd "$user" | cut -d: -f7)"
+else
+  cur="$(dscl . -read "/Users/$user" UserShell 2>/dev/null | awk '{print $2}')"
+fi
+[ "$cur" = "$zsh_path" ] && { echo "default-shell: already zsh"; exit 0; }
+
+# Choose a privilege path that will NOT prompt; if none exists, fall back to guidance.
+priv=""
+if [ "$(id -u)" -eq 0 ]; then priv="root"
+elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then priv="sudo"; fi
+
+if [ -z "$priv" ]; then
+  echo "default-shell: cannot change without a password prompt — run once by hand:"
+  echo "  grep -qxF '$zsh_path' /etc/shells || echo '$zsh_path' | sudo tee -a /etc/shells"
+  echo "  chsh -s '$zsh_path'"
+  exit 0
+fi
+run() { if [ "$priv" = root ]; then "$@"; else sudo "$@"; fi; }
+
+# chsh refuses a shell that is not a valid login shell (/etc/shells). brew's zsh on macOS
+# is not listed by default, so register it first.
+grep -qxF "$zsh_path" /etc/shells 2>/dev/null || echo "$zsh_path" | run tee -a /etc/shells >/dev/null
+# Privileged chsh (root/sudo) sets the target account's shell without a password prompt.
+run chsh -s "$zsh_path" "$user" \
+  && echo "default-shell: -> $zsh_path (effective on next login; now run: exec zsh)" \
+  || echo "default-shell: chsh failed — run by hand: chsh -s '$zsh_path'"

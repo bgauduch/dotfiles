@@ -34,9 +34,12 @@ case "${osid}" in
       ${SUDO} install -d -m 0755 /etc/apt/keyrings
     fi
 
-    # 2) mise — cross-OS dev layer. Bootstrap if absent.
+    # 2) mise — cross-OS dev layer. Bootstrap if absent, PINNED (ADR-0003 bootstrap
+    #    installers): MISE_VERSION fixes the release; MISE_INSTALL_MUSL forces the static
+    #    musl build, which has zero glibc dependency — immune to base-image glibc drift
+    #    (latest mise's glibc-linked aarch64 build broke on Debian's glibc 2.36).
     if ! have mise; then
-      curl -fsSL https://mise.run | sh
+      curl -fsSL https://mise.run | MISE_INSTALL_MUSL=1 MISE_VERSION=v2026.7.2 sh
     fi
     export PATH="${HOME}/.local/bin:${PATH}"
 

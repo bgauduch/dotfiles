@@ -3,7 +3,7 @@
 # bootstrap + dev tools + configs + zsh plugins), then asserts the core binaries and runs
 # doctor.sh — a successful build == the install works end to end (this is the CI
 # integration test; reproduce with `mise run integration-test`).
-FROM debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df
+FROM debian:trixie-slim@sha256:28de0877c2189802884ccd20f15ee41c203573bd87bb6b883f5f46362d24c5c2
 
 ARG USER=dev
 RUN apt-get update \
@@ -21,10 +21,12 @@ ENV PATH="/home/${USER}/.local/bin:/home/${USER}/.local/share/mise/shims:${PATH}
 COPY --chown=${USER}:${USER} . /home/${USER}/.local/share/chezmoi
 
 # Install chezmoi, then init + apply non-interactively (prompts via env vars).
+# chezmoi bootstrap pinned by tag (ADR-0003 bootstrap-installer pinning); matches the
+# mise-managed `aqua:twpayne/chezmoi` version so bootstrap == the persistent binary.
 ENV CHEZMOI_NAME="CI User" \
     CHEZMOI_EMAIL="ci@example.com" \
     CHEZMOI_PROFILE="personal"
-RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "${HOME}/.local/bin" \
+RUN sh -c "$(curl -fsLS get.chezmoi.io)" -- -t v2.70.5 -b "${HOME}/.local/bin" \
  && chezmoi init --apply --source="${HOME}/.local/share/chezmoi"
 
 # Assert the core stack is installed, then run the smoke-test (informational).

@@ -38,6 +38,7 @@ adopting a bump**. Application per class:
 | Tools & **LSP** via mise | `mise.lock` (versions + **checksums** + URLs) | `mise settings lockfile=true` ⇒ checksums **verified at install** for supported backends; cosign/SLSA if upstream publishes | a lockfile without active verification is decorative; an LSP = a mise tool like any other |
 | MCP servers | server version pinned (ADR-0004) | review at add/update | transitive dependency tree (npm/pip) not pinned = residual |
 | apt packages (third-party repo) | version managed by apt | signature via `Signed-By:` keyring (ADR-0002) | — |
+| **Bootstrap installers** (`curl \| sh`: mise, chezmoi, code-server) + container base image | version/tag pin (mise `MISE_VERSION`, chezmoi `-t`, code-server `--version`); base image by **digest**; mise forced to the static **musl** build (no glibc floor) | TLS + TOFU at first fetch; the installer *is* the trust root that fetches everything else | most privileged (piped straight to a shell) — a floating installer both breaks reproducibility (a latest-mise glibc bump broke the CI base) and widens the window for a compromised release; pin the root first |
 
 **Soak time**: do not pin a fresh release immediately; let a waiting period pass (≈ that of an
 upstream alert window) before adopting a bump. Steps: RUNBOOK.
@@ -66,6 +67,14 @@ At level 1: pin + lock + manual review at bump + `gitleaks` (ADR-0007).
 - **Transitive** dependencies of MCP servers and mise binaries not pinned byte-for-byte (→ Nix,
   ADR-0006 level 3).
 - Manual bump review: an obfuscated payload can slip through (accepted limit of level 1).
+- **Bootstrap installer scripts (`curl | sh`)**: the install *script* for mise/chezmoi/code-server
+  is fetched over TLS only, not checksum-verified, before it runs pinned. TLS + the version pin it
+  applies bound the surface; a compromised installer host at fetch time is the residual (the base
+  image, digest-pinned, is not exposed to this). Level-2 (ADR-0006) would vendor these.
+- **Checksum-less backends (TOFU)**: some upstreams publish no per-artifact hash (e.g. AWS CLI v2,
+  shipped as `.pkg`/`.zip` installers). `mise.lock` cannot pre-seed a checksum for these; mise
+  records a trust-on-first-use one at install, so the *first* download is unverified against
+  upstream. Accepted: the brew/apt alternatives are no stronger, and version+URL stay pinned.
 
 ## Review / expiry
 Annual review, or immediate upon adding a dependency class or crossing the level-2 switchover

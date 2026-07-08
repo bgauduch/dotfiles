@@ -1,0 +1,9 @@
+{{/* Git identity, filled at apply from the chezmoi init prompts (.name/.email, stored
+     machine-local in ~/.config/chezmoi/chezmoi.toml). The repo holds only this template,
+     never your name/email. This closes the gap where the prompts were captured but nothing
+     wrote ~/.gitconfig, so git had no author identity after a fresh apply. */}}
+[user]
+	name = {{ .name }}
+	email = {{ .email }}
+[init]
+	defaultBranch = main

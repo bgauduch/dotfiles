@@ -18,6 +18,16 @@ if [ "$(uname)" = Darwin ]; then
   have wezterm && ok wezterm || warn "wezterm missing (brew cask)"
 fi
 
+echo "== infra tooling (transverse via mise, ADR-0002) =="
+for b in terraform aws; do
+  have "$b" && ok "$b" || bad "$b missing"
+done
+# ADR-0002 single-source: a tool = one manager. Flag an aws provided by BOTH brew and
+# mise (aws-cli is mise-declared transverse; a leftover brew formula is a duplicate).
+if have brew && brew list awscli >/dev/null 2>&1 && mise which aws >/dev/null 2>&1; then
+  warn "aws present via BOTH brew and mise — remove one (ADR-0002 single-source): brew uninstall awscli"
+fi
+
 echo "== mise provenance verification (ADR-0003) =="
 if have mise; then
   # Query the setting directly: `mise settings` list formatting drifts across versions.

@@ -1,0 +1,146 @@
+# TODO - work tracker
+
+Durable backlog for this repo, kept in-repo (not GitHub issues) so it travels with the code and
+is resumable locally or from Claude Code Web. Cold-start: read this, pick the next unchecked item.
+Demo-prep + fixes land on branch `demo/live`.
+
+## Done - branch `demo/live` (2026-07-02)
+- [x] Bootstrap installers pinned (ADR-0003 gap: the trust cycle covered dependency *classes* but
+  not the `curl | sh` roots that install mise/chezmoi/code-server). mise now bootstraps from a
+  pinned `MISE_VERSION` + `MISE_INSTALL_MUSL=1` (static build, no glibc floor - fixed the CI break
+  where latest mise's glibc-linked binary failed on bookworm's glibc 2.36); chezmoi pinned `-t`,
+  code-server `--version`. Base images bumped to `debian:trixie-slim` (digest-pinned; glibc 2.41 +
+  `git-delta` now from apt). ADR-0003 gains a "bootstrap installers" class + residual note.
+- [x] `terraform` + `awscli` declared as transverse mise tools (checksummed lock; awscli is TOFU,
+  documented ADR-0003 residual). `2a9382d`
+- [x] Repo aligned to that change: `doctor.sh` smoke-checks terraform/aws + warns on a brew/mise
+  duplicate (ADR-0002); RUNBOOK/README bootstrap reordered (`aws sso login` after `chezmoi apply`,
+  since the CLI is installed by apply); ADR-0003 TOFU residual note. `f43416a`
+- [x] `demo/README.md` translated to English (repo is English-only). `f3ee419`
+- [x] zsh set as default login shell post-install - idempotent, non-blocking chezmoi script. `d8692a5`
+- [x] `chezmoi` declared as a managed mise tool - fixes `command not found` post-bootstrap, which
+  broke the demo edit -> commit loop. `9977a5d`
+- [x] Contextual editor in zsh: `code --wait` when a real `code` binary is on PATH inside a
+  VS Code terminal (`$TERM_PROGRAM=vscode` + `whence -p code`), Helix otherwise. Guard uses
+  `whence -p` because bare code-server injects `code` as a shell FUNCTION that chezmoi's execve
+  can't run. The demo container symlinks the bundled VS Code remote CLI onto PATH as `code`
+  (`demo/Dockerfile.vscode`), so `chezmoi edit`/`git commit` open in the running browser window.
+- [x] Git identity gap closed: `home/dot_gitconfig.tmpl` writes `[user] name/email` from the
+  chezmoi init prompts (`.name`/`.email`) - previously the prompts were captured but nothing
+  wrote `~/.gitconfig`, so `git commit` failed with "Author identity unknown".
+- [x] Git shortcut aliases (minimal, actually-used set: `ga`, `gcmsg`, `gf`, `gp`, `gpsup`) added
+  transverse to `dot_zshrc.tmpl`.
+
+## Backlog
+
+### security
+- [ ] **AWS profile generation (SSO, profile-gated, recon-safe).** `~/.aws/config` is unmanaged, so
+  the `sso-sandbox`/`sso-billing-ro` aliases dangle after a fresh init, and the aliases are not gated
+  to `.profile`. Plan: template `home/private_dot_aws/config.tmpl`; keep identifiers (account IDs,
+  SSO start URL) out of the public repo via chezmoi prompt (preferred, machine-local) or Bitwarden;
+  gate the personal profiles + aliases behind `{{ if eq .profile "personal" }}`; emit SSO blocks
+  only, zero static key. Track as a short amendment to ADR-0005. Refs: ADR-0005, ADR-0002,
+  THREAT-MODEL #10.
+- [ ] **`mise.lock` two-writer / multi-machine / multi-OS / multi-profile lifecycle.** The lock is
+  both a committed reproducibility artifact and a file `mise` mutates at runtime (`lockfile=true`:
+  canonical re-sort + trust-on-first-use checksums, e.g. awscli `blake3:`, computed per install
+  platform). Today chezmoi also manages/deploys it, so the two writers collide and `chezmoi diff`
+  shows churn unrelated to the edit. Note `mise.lock` IS cross-platform by design (one file, all 7
+  platforms) - per-platform lock files are NOT the answer; what actually diverges is the TOFU
+  checksums (per install OS) and, under profile gating, the tool set.
+
+  Root sub-defect: `.chezmoiignore` tries to exclude the lock with a bare `mise.lock`, but bare
+  patterns match only the target root; the real target is nested (`.config/mise/mise.lock`), so the
+  ignore never fires (confirmed: `chezmoi managed` lists it, `chezmoi ignored` does not). Needs
+  `**/mise.lock` or the full path - OR the deploy strategy below.
+
+  **Decision (leaning: Solution A).**
+  - **A - committed checksummed lock, `create_` seed + deterministic regen (preferred).** Source
+    file becomes `create_mise.lock`: chezmoi seeds it on a fresh machine (reproducible first install,
+    checksums verified, ADR-0003), then never touches it again -> `mise` owns the runtime copy, zero
+    chezmoi churn. The committed lock is regenerated **deterministically** with `mise lock -p <all
+    platforms>` (machine-agnostic: checksums come from registries, no install needed), NOT captured
+    from a machine's mutated home lock. Commit a **superset** lock (render config with
+    `profile=work` if work is a superset of personal) so one lock covers both profiles.
+  - **B - versions-only (simpler, weaker doctrine).** Do not commit/deploy the lock (fix the ignore
+    to `**/mise.lock`). Versions stay pinned in `config.toml` (committed) so version reproducibility
+    holds, but no shared committed checksums -> ADR-0003 weakens to "verified on each machine after
+    first TOFU".
+  - The arbitrage is repro-of-shared-checksums (A) vs operational simplicity (B). For a security
+    portfolio repo, A is the fit and mirrors the existing `zsh-plugins.lock` drift-stop pattern.
+
+  **Lifecycle under A (adding e.g. `rust`):** (1) `chezmoi edit ~/.config/mise/config.toml` -> pin
+  an explicit version; (2) `chezmoi cd`; (3) `mise run lock` (repo task to build: renders the
+  superset config + `mise lock -p <all>` -> writes `create_mise.lock`) = the sync step; (4) commit
+  `config.toml.tmpl` + `create_mise.lock` together, push; (5) back home, `chezmoi apply` +
+  `mise install` (local only; home lock mutates but `create_` makes chezmoi ignore it). Install is
+  **local**; the committed lock is **regenerated**, never scraped from the local install.
+
+  **Enforcement:** a CI check `mise run lock --check` (regenerate, diff, fail if the committed lock
+  is stale vs config) - same mechanic as the zsh-plugins drift-stop (ADR-0007), turning "keep in
+  sync" from manual discipline into a gate.
+
+  Implementation deferred: (a) rename source lock to `create_mise.lock`; (b) add the `mise run lock`
+  task + superset render; (c) add the CI drift-check; (d) fix/repurpose the `.chezmoiignore` entry.
+  Refs: ADR-0003 (supply-chain), ADR-0007 (recurring audit CI).
+
+### tech-debt
+- [ ] **`.gitignore` `bin/` -> `/bin/`.** The unanchored `bin/` also matches `home/dot_local/bin/`,
+  so a new untracked script there is silently ignored (tracked files unaffected). Anchor to repo root.
+
+### enhancement
+- [ ] **Em-dash sweep, repo-wide.** Replace `—` with `-` or rephrase across docs/ADRs/README/comments
+  (owner convention: no em dashes). Add the rule to `docs/conventions.md`. Verify:
+  `git ls-files | xargs grep -nP '\x{2014}'` returns nothing.
+- [ ] **LSP batch via mise.** terraform-ls, gopls, bash-language-server, yaml-language-server,
+  marksman (DEFERRED block in the mise config; helix already references terraform-ls). Confirm
+  registry names on a real machine, keep the integration-test build green.
+- [ ] **Profile-specific configs, work vs personal.** `.profile` currently gates only commented
+  lines (personal == work functionally). Wire real per-profile config and give `.profile` an
+  observable effect for the demo. Relates to the AWS profile item.
+
+### daily-usability (aliases ported, tool inventory not)
+Root pattern found by a transverse audit: the personal aliases were "ported from the pre-chezmoi
+setup" (`dot_zshrc.tmpl` section 5) but the tools they drive were NOT added to the inventory (mise
+config / Brewfile). So a fresh machine is demo-complete but not daily-usable. None of these are
+ADR-deferred - they fell through the alias port. Decide per tool: transverse vs work-profile (ties
+into the profile-configs item).
+- [ ] **Container + k8s stack unusable (colima, docker, k3d, kubectl).** `docker-start/stop/clean`,
+  `k3d-start/stop`, `k8s-start/stop` (`dot_zshrc.tmpl` ~L75-92) all call binaries nothing installs on
+  the `personal` profile. Worse, the aggregate `clean` alias chains `docker-clean` -> `colima start`,
+  so `clean` fails wholesale on a box without colima. Declare the stack (mise and/or Brewfile) and
+  decide transverse vs work-gated. Highest daily-use surface. NEW.
+- [ ] **Bitwarden CLI `bw` not installed (bootstrap-blocking).** RUNBOOK step 1 + ADR-0005 make
+  `bw unlock` a precondition of the first `chezmoi apply` (bitwarden templates render at apply), but
+  `bw` is in neither Brewfile nor mise, and `doctor.sh` doesn't check it. A fresh init with any
+  `{{ (bitwarden ...) }}` template fails. Declare `bw` + add a doctor check. NEW.
+- [ ] **Terraform plugin cache never enabled.** `tf-clean-cache` cleans `~/.terraform.d/plugins-cache`
+  but no `~/.terraformrc` / `TF_PLUGIN_CACHE_DIR` exists -> Terraform never caches there (re-downloads
+  providers every init), and the alias path (`plugins-cache`) mismatches the convention
+  (`plugin-cache`). Rework: `home/dot_terraformrc.tmpl` with `plugin_cache_dir =
+  "$HOME/.terraform.d/plugin-cache"` + `disable_checkpoint = true`; create the dir via a chezmoi
+  `.keep`; align the alias path. Transverse. NEW.
+- [ ] **`granted` not installed.** RUNBOOK/ADR-0005 blessed AWS SSO alt; absent. Declare or drop the
+  reference. NEW.
+- [ ] **SSH config unmanaged.** ADR-0005 calls SSH keys a central asset, yet there is no
+  chezmoi-managed `~/.ssh/config`. Decide what (if any) hosts/config to template (private keys stay
+  out of git). NEW.
+- [ ] **`headroom` (cch alias) not installed.** `cch='headroom wrap claude ...'` references an
+  out-of-band binary. Declare it or document as an external prerequisite. NEW, low.
+
+### known-deferred (intentional ADR decisions, not gaps)
+Listed for visibility - each is a conscious "decided, not built", not an oversight:
+- Level-2 supply-chain gates (ADR-0003/0006/0007): tree-hash cross-witness, soak automation, blocking
+  ADR-lint. Triggered by a criterion, not now.
+- chezmoi auto-commit/auto-push (ADR-0010): deferred.
+- OS agent sandbox (ADR-0004): Seatbelt / bwrap+socat aspirational; `doctor.sh` only WARNs.
+- LSP block (mise config): deferred pending registry-name confirmation - also tracked under enhancement.
+
+## Demo cold-start (web VS Code)
+- One-liner: `sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply bgauduch/dotfiles --branch demo/live`
+- Deterministic (skip prompts): prefix with
+  `CHEZMOI_PROFILE=personal CHEZMOI_NAME="..." CHEZMOI_EMAIL="..."`.
+- After apply: `exec zsh` for the current shell (new logins default to zsh). `chezmoi`, `terraform`,
+  `aws` are on PATH via mise shims.
+- Verify the loaded profile: `chezmoi execute-template '{{ .profile }}'`.
+- The web demo clones the REMOTE branch: push `demo/live` for any fix to take effect there.

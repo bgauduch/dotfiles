@@ -13,8 +13,17 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 {{- else -}}
 export PATH="$HOME/.local/bin:$PATH"
 {{- end }}
-export EDITOR="hx"
-export VISUAL="hx"
+# Editor is contextual: the real `code` CLI when this shell runs inside a VS Code terminal
+# that ships one (Codespaces, desktop Remote, or the demo container which symlinks it - see
+# demo/Dockerfile.vscode), Helix otherwise. `code --wait` blocks until the tab closes, which
+# `chezmoi edit` / `git commit` require. `whence -p` matches only a PATH executable: bare
+# code-server injects `code` as a shell FUNCTION (no binary) that execve can't run, so
+# without a real `code` on PATH we fall back to terminal Helix.
+if [ "$TERM_PROGRAM" = vscode ] && whence -p code >/dev/null 2>&1; then
+  export EDITOR="code --wait" VISUAL="code --wait"
+else
+  export EDITOR="hx" VISUAL="hx"
+fi
 
 # --- 2) Tool init ---
 if command -v mise >/dev/null 2>&1; then
@@ -50,6 +59,12 @@ fi
 # Cross-platform
 alias mise-clean="mise prune --yes && mise cache prune --yes"
 alias mise-update="mise plugins update && mise upgrade && mise-clean"
+# Git shortcuts (the handful actually used; run git directly for the rest).
+alias ga='git add'
+alias gcmsg='git commit -m'
+alias gf='git fetch'
+alias gp='git push'
+alias gpsup='git push --set-upstream origin "$(git branch --show-current)"'
 alias tffr="terraform fmt --recursive"
 alias tf-clean="find ~/git -type d -name '.terraform' -prune -exec rm -rf {} + && tf-clean-cache"
 alias tf-clean-cache="find ~/.terraform.d/plugins-cache -mindepth 1 -delete"
