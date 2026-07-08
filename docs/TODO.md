@@ -5,6 +5,12 @@ is resumable locally or from Claude Code Web. Cold-start: read this, pick the ne
 Demo-prep + fixes land on branch `demo/live`.
 
 ## Done - branch `demo/live` (2026-07-02)
+- [x] Bootstrap installers pinned (ADR-0003 gap: the trust cycle covered dependency *classes* but
+  not the `curl | sh` roots that install mise/chezmoi/code-server). mise now bootstraps from a
+  pinned `MISE_VERSION` + `MISE_INSTALL_MUSL=1` (static build, no glibc floor - fixed the CI break
+  where latest mise's glibc-linked binary failed on bookworm's glibc 2.36); chezmoi pinned `-t`,
+  code-server `--version`. Base images bumped to `debian:trixie-slim` (digest-pinned; glibc 2.41 +
+  `git-delta` now from apt). ADR-0003 gains a "bootstrap installers" class + residual note.
 - [x] `terraform` + `awscli` declared as transverse mise tools (checksummed lock; awscli is TOFU,
   documented ADR-0003 residual). `2a9382d`
 - [x] Repo aligned to that change: `doctor.sh` smoke-checks terraform/aws + warns on a brew/mise
